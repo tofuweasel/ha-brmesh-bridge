@@ -106,10 +106,10 @@ Generate updated ESPHome config with all 8 lights:
 3. Save file
 
 **Flash ESP32**:
-```powershell
-cd C:\Profiles\crval\Nextcloud\Projects\ESPHome\brmesh-controller
-Move-Item ~/Downloads/living_room_esp32.yaml brmesh-controller.yaml -Force
-esphome run brmesh-controller.yaml
+```bash
+cd /config/esphome
+# Download the generated YAML from Web UI
+esphome run controller_name.yaml
 ```
 
 ## ✨ Done!

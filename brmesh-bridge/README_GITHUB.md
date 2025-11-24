@@ -26,7 +26,7 @@ Bridge your BRMesh/Fastcon BLE lights to Home Assistant with **complete GUI conf
 
 1. Go to **Settings** → **Add-ons** → **Add-on Store**
 2. Click ⋮ (three dots) → **Repositories**
-3. Add: `http://gitea:3000/crvalentino/ha-brmesh-bridge`
+3. Add: `https://github.com/tofuweasel/ha-brmesh-bridge`
 4. Search for "BRMesh Bridge"
 5. Click **Install**
 6. Start the add-on
@@ -171,8 +171,8 @@ If this add-on helps you, please ⭐ star this repository to show support!
 
 ## 🔗 Links
 
-- **Repository**: http://www.buckleup.cc/brmesh-bridge
-- **Issues**: https://github.com/YOUR_USERNAME/ha-brmesh-bridge/issues
+- **Repository**: https://github.com/tofuweasel/ha-brmesh-bridge
+- **Issues**: https://github.com/tofuweasel/ha-brmesh-bridge/issues
 - **ESPHome Component**: https://github.com/scross01/esphome-fastcon
 - **Home Assistant**: https://www.home-assistant.io/
 - **HACS**: https://hacs.xyz/

@@ -19,7 +19,7 @@ The add-on provides:
 
 The add-on files are located at:
 ```
-c:\Profiles\crval\Nextcloud\Projects\HomeAssistant\addons\brmesh-bridge\
+/addons/ha-brmesh-bridge/
 ```
 
 **Files Created:**
