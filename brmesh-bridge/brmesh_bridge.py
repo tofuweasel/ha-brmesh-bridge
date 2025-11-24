@@ -24,7 +24,11 @@ from ble_discovery import BRMeshDiscovery
 from app_importer import BRMeshAppImporter
 from nspanel_ui import NSPanelUIGenerator
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s:%(name)s:%(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
 
 class BRMeshBridge:
@@ -41,7 +45,8 @@ class BRMeshBridge:
         # Use Home Assistant's MQTT service by default
         if self.config.get('use_addon_mqtt', True):
             # Auto-discover Home Assistant's MQTT service
-            self.mqtt_host = os.getenv('MQTT_HOST', 'core-mosquitto')
+            mqtt_host_env = os.getenv('MQTT_HOST', 'core-mosquitto')
+            self.mqtt_host = mqtt_host_env if mqtt_host_env and mqtt_host_env != 'null' else 'core-mosquitto'
             mqtt_port_str = os.getenv('MQTT_PORT', '1883')
             self.mqtt_port = int(mqtt_port_str) if mqtt_port_str and mqtt_port_str != 'null' else 1883
             self.mqtt_user = os.getenv('MQTT_USER', '')
