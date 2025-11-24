@@ -130,11 +130,11 @@
                     <h3>MQTT Configuration</h3>
                     <div class="form-group">
                         <label>
-                            <input type="checkbox" id="use-addon-mqtt" checked />
+                            <input type="checkbox" id="use-addon-mqtt" checked onchange="toggleMQTTSection()" />
                             Use Home Assistant's MQTT service (recommended)
                         </label>
                     </div>
-                    <div id="custom-mqtt-settings" style="display: none;">
+                    <div id="custom-mqtt-section" style="display: none;">
                         <div class="form-group">
                             <label for="mqtt-host">MQTT Broker Host:</label>
                             <input type="text" id="mqtt-host" placeholder="mqtt.example.com" />

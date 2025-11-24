@@ -549,7 +549,7 @@ async function loadSettings() {
         
         // MQTT settings
         document.getElementById('use-addon-mqtt').checked = settings.use_addon_mqtt !== false;
-        toggleCustomMQTT();
+        toggleMQTTSection();
         if (!settings.use_addon_mqtt) {
             document.getElementById('mqtt-host').value = settings.mqtt_host || '';
             document.getElementById('mqtt-port').value = settings.mqtt_port || 1883;
@@ -623,9 +623,10 @@ async function saveSettings() {
     }
 }
 
-function toggleCustomMQTT() {
+function toggleMQTTSection() {
     const useAddonMQTT = document.getElementById('use-addon-mqtt').checked;
-    document.getElementById('custom-mqtt-settings').style.display = useAddonMQTT ? 'none' : 'block';
+    const section = document.getElementById('custom-mqtt-section');
+    if (section) section.style.display = useAddonMQTT ? 'none' : 'block';
 }
 
 function toggleNSPanelSettings() {
@@ -703,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('save-settings-btn');
     const resetBtn = document.getElementById('reset-settings-btn');
     
-    if (useMqttCheckbox) useMqttCheckbox.addEventListener('change', toggleCustomMQTT);
+    if (useMqttCheckbox) useMqttCheckbox.addEventListener('change', toggleMQTTSection);
     if (nspanelCheckbox) nspanelCheckbox.addEventListener('change', toggleNSPanelSettings);
     
     const mapCheckbox = document.getElementById('map-enabled');
