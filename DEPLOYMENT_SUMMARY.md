@@ -344,8 +344,8 @@ Special thanks to:
 
 ## Quick Reference
 
-**Repository URL**: `http://www.buckleup.cc/brmesh-bridge`
-**GitHub**: `https://github.com/YOUR_USERNAME/ha-brmesh-bridge`
+**Repository URL**: `http://gitea:3000/crvalentino/ha-brmesh-bridge`
+**GitHub** (when ready): `https://github.com/YOUR_USERNAME/ha-brmesh-bridge`
 **Container Registry**: `ghcr.io/YOUR_USERNAME/brmesh-bridge`
 **Version**: 0.9.0 (beta)
 **Web UI Port**: 8099
