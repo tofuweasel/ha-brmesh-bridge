@@ -49,7 +49,6 @@ options:
       enabled: true
     - name: "Fire"
       enabled: true
-image: ghcr.io/tofuweasel/{arch}-brmesh-bridge
 schema:
   mesh_key: str
   use_addon_mqtt: bool?
