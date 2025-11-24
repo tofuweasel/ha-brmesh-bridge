@@ -1,5 +1,5 @@
 name: BRMesh Bridge
-version: "0.9.11"
+version: "0.9.12"
 slug: brmesh-bridge
 description: Advanced BRMesh light management with map view, effects, and multi-controller support
 url: https://github.com/tofuweasel/ha-brmesh-bridge
@@ -14,6 +14,7 @@ uart: true
 usb: true
 bluetooth: true
 hassio_api: true
+hassio_role: manager
 homeassistant_api: true
 host_network: true
 ingress: true
