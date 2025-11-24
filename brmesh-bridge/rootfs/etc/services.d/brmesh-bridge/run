@@ -1,0 +1,26 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Start BRMesh Bridge service
+# ==============================================================================
+
+bashio::log.info "Starting BRMesh Bridge..."
+
+# Get MQTT credentials from Supervisor Services API
+if bashio::services.available "mqtt"; then
+    export MQTT_HOST=$(bashio::services "mqtt" "host")
+    export MQTT_PORT=$(bashio::services "mqtt" "port")
+    export MQTT_USER=$(bashio::services "mqtt" "username")
+    export MQTT_PASS=$(bashio::services "mqtt" "password")
+    
+    bashio::log.info "✅ Got MQTT service from Supervisor"
+    bashio::log.info "📡 MQTT: ${MQTT_USER}@${MQTT_HOST}:${MQTT_PORT}"
+else
+    bashio::log.warning "⚠️  MQTT service not available via Supervisor"
+    export MQTT_HOST="core-mosquitto"
+    export MQTT_PORT="1883"
+    export MQTT_USER=""
+    export MQTT_PASS=""
+fi
+
+# Run Python application
+exec python3 /app/brmesh_bridge.py

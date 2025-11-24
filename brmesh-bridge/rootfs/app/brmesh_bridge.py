@@ -42,47 +42,16 @@ class BRMeshBridge:
         # Configuration from add-on options
         self.mesh_key = self.config.get('mesh_key', '')
         
-        # Use Home Assistant's MQTT service by default
-        if self.config.get('use_addon_mqtt', True):
-            # Get MQTT service info from Supervisor
-            try:
-                import requests
-                supervisor_token = os.getenv('SUPERVISOR_TOKEN')
-                if supervisor_token:
-                    headers = {'Authorization': f'Bearer {supervisor_token}'}
-                    response = requests.get('http://supervisor/services/mqtt', headers=headers, timeout=5)
-                    if response.status_code == 200:
-                        mqtt_info = response.json()['data']
-                        logger.info(f"📥 MQTT service info from Supervisor: {mqtt_info}")
-                        self.mqtt_host = mqtt_info.get('host', 'core-mosquitto')
-                        self.mqtt_port = mqtt_info.get('port', 1883)
-                        self.mqtt_user = mqtt_info.get('username', '')
-                        self.mqtt_password = mqtt_info.get('password', '')
-                        if self.mqtt_user and self.mqtt_password:
-                            logger.info(f"✅ Got MQTT credentials from Supervisor: {self.mqtt_user}@{self.mqtt_host}:{self.mqtt_port}")
-                        else:
-                            logger.warning(f"⚠️  Supervisor returned empty MQTT credentials! Trying fallback...")
-                            # Try to use the configured MQTT user
-                            self.mqtt_user = 'homeassistant'
-                            self.mqtt_password = ''
-                    else:
-                        raise Exception(f"MQTT service not found (status {response.status_code})")
-                else:
-                    raise Exception("SUPERVISOR_TOKEN not available")
-            except Exception as e:
-                logger.warning(f"Could not get MQTT service info: {e}. Using defaults.")
-                self.mqtt_host = 'core-mosquitto'
-                self.mqtt_port = 1883
-                self.mqtt_user = ''
-                self.mqtt_password = ''
+        # Get MQTT credentials from environment (set by Bashio in run script)
+        self.mqtt_host = os.getenv('MQTT_HOST', 'core-mosquitto')
+        self.mqtt_port = int(os.getenv('MQTT_PORT', '1883'))
+        self.mqtt_user = os.getenv('MQTT_USER', '')
+        self.mqtt_password = os.getenv('MQTT_PASS', '')
+        
+        if self.mqtt_user:
+            logger.info(f"✅ Got MQTT credentials from Bashio: {self.mqtt_user}@{self.mqtt_host}:{self.mqtt_port}")
         else:
-            # Use custom MQTT broker
-            self.mqtt_host = self.config.get('mqtt_host', 'localhost')
-            mqtt_port = self.config.get('mqtt_port', 1883)
-            self.mqtt_port = int(mqtt_port) if mqtt_port else 1883
-            self.mqtt_user = self.config.get('mqtt_user', '')
-            self.mqtt_password = self.config.get('mqtt_password', '')
-            logger.info(f"Using custom MQTT broker: {self.mqtt_host}:{self.mqtt_port}")
+            logger.warning(f"⚠️  No MQTT credentials provided - using anonymous connection")
         self.discovery_enabled = self.config.get('discovery_enabled', True)
         self.mqtt_client = None
         self.effects = None
@@ -417,7 +386,7 @@ class BRMeshBridge:
         """Main run loop"""
         logger.info("=" * 80)
         logger.info("=" * 80)
-        logger.info("🚀 BRMesh Bridge v0.9.17 - Starting Up")
+        logger.info("🚀 BRMesh Bridge v1.0.0 - Starting Up (Bashio)")
         logger.info("=" * 80)
         logger.info(f"📡 Mesh Key: {self.mesh_key if self.mesh_key else '(not configured - use Web UI)'}")
         logger.info(f"🔌 MQTT Broker: {self.mqtt_host}:{self.mqtt_port}")
