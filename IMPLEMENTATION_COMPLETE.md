@@ -1,5 +1,7 @@
 # GUI Configuration Implementation - Complete! ✅
 
+## Version 0.9.0 (Beta Release)
+
 ## What Was Implemented
 
 Complete GUI-based configuration system for BRMesh Bridge add-on, eliminating the need for manual YAML file editing.

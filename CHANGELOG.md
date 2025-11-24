@@ -5,9 +5,9 @@ All notable changes to the BRMesh Bridge add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2025-11-24
+## [0.9.0] - 2025-11-24
 
-### 🎉 Major Release: GUI Configuration & Phone-Free Operation
+### 🎉 Beta Release: GUI Configuration & Phone-Free Operation
 
 This is a complete rewrite of the BRMesh Bridge add-on with a focus on user experience and automation.
 
@@ -73,7 +73,7 @@ This is a complete rewrite of the BRMesh Bridge add-on with a focus on user expe
 - MQTT topic structure may have changed for some devices
 
 ### Migration Notes
-From v1.x to v2.0.0:
+From v1.x to v0.9.0:
 1. Export your light IDs and names from old config
 2. Install v2.0.0
 3. Use Settings tab to reconfigure mesh key and MQTT
@@ -102,7 +102,12 @@ From v1.x to v2.0.0:
 
 ## Future Releases
 
-### [2.1.0] - Planned
+### [1.0.0] - Planned
+- Full stable release
+- Production-ready
+- Performance optimizations
+
+### [1.1.0] - Planned
 - **Automation Templates** - Pre-built automation examples
 - **Grouping** - Create light groups through GUI
 - **Effect Builder** - Create custom lighting effects
@@ -129,5 +134,5 @@ Have an idea? Submit a feature request or pull request on GitHub!
 
 ---
 
-[2.0.0]: https://github.com/YOUR_USERNAME/ha-brmesh-bridge/releases/tag/v2.0.0
+[0.9.0]: https://github.com/YOUR_USERNAME/ha-brmesh-bridge/releases/tag/v0.9.0
 [1.0.0]: https://github.com/YOUR_USERNAME/ha-brmesh-bridge/releases/tag/v1.0.0

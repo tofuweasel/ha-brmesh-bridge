@@ -1,4 +1,4 @@
-# Final Implementation Summary - BRMesh Bridge v2.0.0
+# Final Implementation Summary - BRMesh Bridge v0.9.0
 
 ## ✅ All Requested Features Implemented
 
@@ -187,8 +187,8 @@ git branch -M main
 git push -u origin main
 
 # Tag release
-git tag v2.0.0
-git push origin v2.0.0
+git tag v0.9.0
+git push origin v0.9.0
 ```
 
 ### On Server us001 at buckleup.cc
@@ -347,7 +347,7 @@ Special thanks to:
 **Repository URL**: `http://www.buckleup.cc/brmesh-bridge`
 **GitHub**: `https://github.com/YOUR_USERNAME/ha-brmesh-bridge`
 **Container Registry**: `ghcr.io/YOUR_USERNAME/brmesh-bridge`
-**Version**: 2.0.0
+**Version**: 0.9.0 (beta)
 **Web UI Port**: 8099
 **MQTT Port**: 1883 (auto-detected)
 

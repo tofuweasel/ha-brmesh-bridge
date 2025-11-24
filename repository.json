@@ -1,7 +1,7 @@
 {
   "name": "BRMesh Bridge Pro",
   "url": "http://www.buckleup.cc/brmesh-bridge",
-  "version": "2.0.0",
+  "version": "0.9.0",
   "slug": "brmesh-bridge",
   "description": "Bridge BRMesh/Fastcon BLE lights to Home Assistant with GUI configuration, BLE discovery, effects engine, and phone-free operation",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],

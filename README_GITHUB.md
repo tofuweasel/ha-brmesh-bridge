@@ -147,9 +147,9 @@ Additional acknowledgments:
 
 ## 📋 Changelog
 
-### v2.0.0 (November 2025)
+### v0.9.0 (November 2025)
 
-**Major Release: GUI Configuration**
+**Beta Release: GUI Configuration**
 
 - ✅ Complete web-based configuration - no manual file editing!
 - ✅ Auto-detect Home Assistant location for maps
