@@ -53,11 +53,18 @@ class BRMeshBridge:
                     response = requests.get('http://supervisor/services/mqtt', headers=headers, timeout=5)
                     if response.status_code == 200:
                         mqtt_info = response.json()['data']
+                        logger.info(f"📥 MQTT service info from Supervisor: {mqtt_info}")
                         self.mqtt_host = mqtt_info.get('host', 'core-mosquitto')
                         self.mqtt_port = mqtt_info.get('port', 1883)
                         self.mqtt_user = mqtt_info.get('username', '')
                         self.mqtt_password = mqtt_info.get('password', '')
-                        logger.info(f"Using Home Assistant's MQTT service: {self.mqtt_host}:{self.mqtt_port}")
+                        if self.mqtt_user and self.mqtt_password:
+                            logger.info(f"✅ Got MQTT credentials from Supervisor: {self.mqtt_user}@{self.mqtt_host}:{self.mqtt_port}")
+                        else:
+                            logger.warning(f"⚠️  Supervisor returned empty MQTT credentials! Trying fallback...")
+                            # Try to use the configured MQTT user
+                            self.mqtt_user = 'homeassistant'
+                            self.mqtt_password = ''
                     else:
                         raise Exception(f"MQTT service not found (status {response.status_code})")
                 else:
@@ -410,7 +417,7 @@ class BRMeshBridge:
         """Main run loop"""
         logger.info("=" * 80)
         logger.info("=" * 80)
-        logger.info("🚀 BRMesh Bridge v0.9.15 - Starting Up")
+        logger.info("🚀 BRMesh Bridge v0.9.17 - Starting Up")
         logger.info("=" * 80)
         logger.info(f"📡 Mesh Key: {self.mesh_key if self.mesh_key else '(not configured - use Web UI)'}")
         logger.info(f"🔌 MQTT Broker: {self.mqtt_host}:{self.mqtt_port}")
