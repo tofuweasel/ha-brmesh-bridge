@@ -44,14 +44,30 @@ class BRMeshBridge:
         
         # Use Home Assistant's MQTT service by default
         if self.config.get('use_addon_mqtt', True):
-            # Auto-discover Home Assistant's MQTT service
-            mqtt_host_env = os.getenv('MQTT_HOST', 'core-mosquitto')
-            self.mqtt_host = mqtt_host_env if mqtt_host_env and mqtt_host_env != 'null' else 'core-mosquitto'
-            mqtt_port_str = os.getenv('MQTT_PORT', '1883')
-            self.mqtt_port = int(mqtt_port_str) if mqtt_port_str and mqtt_port_str != 'null' else 1883
-            self.mqtt_user = os.getenv('MQTT_USER', '')
-            self.mqtt_password = os.getenv('MQTT_PASSWORD', '')
-            logger.info("Using Home Assistant's MQTT service")
+            # Get MQTT service info from Supervisor
+            try:
+                import requests
+                supervisor_token = os.getenv('SUPERVISOR_TOKEN')
+                if supervisor_token:
+                    headers = {'Authorization': f'Bearer {supervisor_token}'}
+                    response = requests.get('http://supervisor/services/mqtt', headers=headers, timeout=5)
+                    if response.status_code == 200:
+                        mqtt_info = response.json()['data']
+                        self.mqtt_host = mqtt_info.get('host', 'core-mosquitto')
+                        self.mqtt_port = mqtt_info.get('port', 1883)
+                        self.mqtt_user = mqtt_info.get('username', '')
+                        self.mqtt_password = mqtt_info.get('password', '')
+                        logger.info(f"Using Home Assistant's MQTT service: {self.mqtt_host}:{self.mqtt_port}")
+                    else:
+                        raise Exception(f"MQTT service not found (status {response.status_code})")
+                else:
+                    raise Exception("SUPERVISOR_TOKEN not available")
+            except Exception as e:
+                logger.warning(f"Could not get MQTT service info: {e}. Using defaults.")
+                self.mqtt_host = 'core-mosquitto'
+                self.mqtt_port = 1883
+                self.mqtt_user = ''
+                self.mqtt_password = ''
         else:
             # Use custom MQTT broker
             self.mqtt_host = self.config.get('mqtt_host', 'localhost')
@@ -392,7 +408,7 @@ class BRMeshBridge:
     
     def run(self):
         """Main run loop"""
-        logger.info("Starting BRMesh Bridge Pro v2.0")
+        logger.info(\"Starting BRMesh Bridge v1.0.0\")
         logger.info(f"Mesh Key: {self.mesh_key}")
         logger.info(f"MQTT: {self.mqtt_host}:{self.mqtt_port}")
         
