@@ -2,7 +2,7 @@ name: BRMesh Bridge Pro
 version: "0.9.0"
 slug: brmesh-bridge
 description: Advanced BRMesh light management with map view, effects, and multi-controller support
-url: https://github.com/your-repo/brmesh-bridge
+url: https://github.com/tofuweasel/ha-brmesh-bridge
 arch:
   - aarch64
   - amd64
