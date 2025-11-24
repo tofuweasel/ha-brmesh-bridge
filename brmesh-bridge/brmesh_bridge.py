@@ -408,7 +408,7 @@ class BRMeshBridge:
     
     def run(self):
         """Main run loop"""
-        logger.info(\"Starting BRMesh Bridge v1.0.0\")
+        logger.info("Starting BRMesh Bridge v1.0.0")
         logger.info(f"Mesh Key: {self.mesh_key}")
         logger.info(f"MQTT: {self.mqtt_host}:{self.mqtt_port}")
         
