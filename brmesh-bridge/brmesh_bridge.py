@@ -63,10 +63,40 @@ class BRMeshBridge:
     
     def load_config(self):
         """Load configured lights and controllers from options"""
-        self.config = {}
+        # Set defaults
+        self.config = {
+            'mesh_key': '',
+            'use_addon_mqtt': True,
+            'mqtt_host': 'core-mosquitto',
+            'mqtt_port': 1883,
+            'mqtt_user': '',
+            'mqtt_password': '',
+            'discovery_enabled': True,
+            'generate_esphome_configs': True,
+            'enable_ble_discovery': True,
+            'enable_nspanel_ui': False,
+            'nspanel_entity_id': '',
+            'app_config_path': '/share/brmesh_export.json',
+            'map_enabled': True,
+            'map_latitude': 0.0,
+            'map_longitude': 0.0,
+            'map_zoom': 19,
+            'controllers': [],
+            'lights': [],
+            'scenes': [],
+            'effects': [
+                {'name': 'Rainbow', 'enabled': True},
+                {'name': 'Color Loop', 'enabled': True},
+                {'name': 'Twinkle', 'enabled': True},
+                {'name': 'Fire', 'enabled': True}
+            ]
+        }
+        
         try:
             with open('/data/options.json', 'r') as f:
-                self.config = json.load(f)
+                loaded_config = json.load(f)
+                # Merge loaded config with defaults
+                self.config.update(loaded_config)
                 
                 # Load lights
                 for light in self.config.get('lights', []):
@@ -85,7 +115,7 @@ class BRMeshBridge:
                 self.controllers = self.config.get('controllers', [])
                 
                 # Auto-detect Home Assistant location if not configured
-                if not self.config.get('latitude') or not self.config.get('longitude'):
+                if not self.config.get('map_latitude') or not self.config.get('map_longitude'):
                     self._detect_ha_location()
                 
                 logger.info(f"Loaded {len(self.lights)} lights and {len(self.controllers)} controllers from config")

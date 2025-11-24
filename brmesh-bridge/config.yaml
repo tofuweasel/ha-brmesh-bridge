@@ -1,5 +1,5 @@
 name: BRMesh Bridge Pro
-version: "0.9.4"
+version: "0.9.5"
 slug: brmesh-bridge
 description: Advanced BRMesh light management with map view, effects, and multi-controller support
 url: https://github.com/tofuweasel/ha-brmesh-bridge
@@ -22,50 +22,8 @@ panel_icon: mdi:lightbulb-group
 webui: http://[HOST]:[PORT:8099]
 options:
   mesh_key: ""
-  use_addon_mqtt: true
-  mqtt_host: "core-mosquitto"
-  mqtt_port: 1883
-  mqtt_user: ""
-  mqtt_password: ""
-  discovery_enabled: true
-  generate_esphome_configs: true
-  enable_ble_discovery: true
-  enable_nspanel_ui: false
-  nspanel_entity_id: ""
-  app_config_path: "/share/brmesh_export.json"
-  map_enabled: true
-  map_latitude: 0.0
-  map_longitude: 0.0
-  map_zoom: 19
-  controllers: []
-  lights: []
-  scenes: []
-  effects:
-    - name: "Rainbow"
-      enabled: true
-    - name: "Color Loop"
-      enabled: true
-    - name: "Twinkle"
-      enabled: true
-    - name: "Fire"
-      enabled: true
 schema:
-  mesh_key: str
-  use_addon_mqtt: bool?
-  mqtt_host: str?
-  mqtt_port: int?
-  mqtt_user: str?
-  mqtt_password: password?
-  discovery_enabled: bool
-  generate_esphome_configs: bool?
-  enable_ble_discovery: bool?
-  enable_nspanel_ui: bool?
-  nspanel_entity_id: str?
-  app_config_path: str?
-  map_enabled: bool
-  map_latitude: float
-  map_longitude: float
-  map_zoom: int(15,22)
+  mesh_key: "str?"
   controllers:
     - name: str
       ip_address: str

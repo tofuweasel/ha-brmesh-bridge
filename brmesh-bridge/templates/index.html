@@ -158,24 +158,26 @@
                     <h3>Map Configuration</h3>
                     <div class="form-group">
                         <label>
-                            <input type="checkbox" id="map-enabled" checked />
+                            <input type="checkbox" id="map-enabled" checked onchange="toggleMapSettings()" />
                             Enable Map View
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label for="map-latitude">Property Latitude:</label>
-                        <input type="number" id="map-latitude" step="0.000001" placeholder="37.7749" />
-                        <small>Find on Google Maps by right-clicking</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="map-longitude">Property Longitude:</label>
-                        <input type="number" id="map-longitude" step="0.000001" placeholder="-122.4194" />
-                    </div>
-                    <div class="form-group">
-                        <label for="map-zoom">Default Zoom Level:</label>
-                        <input type="range" id="map-zoom" min="15" max="20" value="18" />
-                        <span id="zoom-value">18</span>
-                        <small>18 = high detail, 15 = neighborhood view</small>
+                    <div id="map-settings-fields">
+                        <div class="form-group">
+                            <label for="map-latitude">Property Latitude:</label>
+                            <input type="number" id="map-latitude" step="0.000001" placeholder="37.7749" />
+                            <small>Find on Google Maps by right-clicking</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="map-longitude">Property Longitude:</label>
+                            <input type="number" id="map-longitude" step="0.000001" placeholder="-122.4194" />
+                        </div>
+                        <div class="form-group">
+                            <label for="map-zoom">Default Zoom Level:</label>
+                            <input type="range" id="map-zoom" min="15" max="20" value="18" />
+                            <span id="zoom-value">18</span>
+                            <small>18 = high detail, 15 = neighborhood view</small>
+                        </div>
                     </div>
                 </div>
 
@@ -246,5 +248,12 @@
     </div>
 
     <script src="/static/js/app.js"></script>
+    <script>
+    function toggleMapSettings() {
+        const mapEnabled = document.getElementById('map-enabled').checked;
+        const fields = document.getElementById('map-settings-fields');
+        if (fields) fields.style.display = mapEnabled ? 'block' : 'none';
+    }
+    </script>
 </body>
 </html>

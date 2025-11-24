@@ -633,6 +633,11 @@ function toggleNSPanelSettings() {
     document.getElementById('nspanel-settings').style.display = enableNSPanel ? 'block' : 'none';
 }
 
+function toggleMapSettings() {
+    const mapEnabled = document.getElementById('map-enabled').checked;
+    document.getElementById('map-settings-fields').style.display = mapEnabled ? 'block' : 'none';
+}
+
 function updateZoomDisplay() {
     const zoom = document.getElementById('map-zoom').value;
     document.getElementById('zoom-value').textContent = zoom;
@@ -700,6 +705,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (useMqttCheckbox) useMqttCheckbox.addEventListener('change', toggleCustomMQTT);
     if (nspanelCheckbox) nspanelCheckbox.addEventListener('change', toggleNSPanelSettings);
+    
+    const mapCheckbox = document.getElementById('map-enabled');
+    if (mapCheckbox) mapCheckbox.addEventListener('change', toggleMapSettings);
+    
     if (zoomSlider) zoomSlider.addEventListener('input', updateZoomDisplay);
     if (saveBtn) saveBtn.addEventListener('click', saveSettings);
     if (resetBtn) resetBtn.addEventListener('click', resetSettings);
