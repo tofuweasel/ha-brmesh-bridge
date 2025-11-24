@@ -29,6 +29,10 @@ logger = logging.getLogger(__name__)
 
 class BRMeshBridge:
     def __init__(self):
+        # Initialize lights/controllers before loading config
+        self.lights: Dict[int, dict] = {}
+        self.controllers: List[dict] = []
+        
         self.load_config()
         
         # Configuration from add-on options
@@ -38,21 +42,20 @@ class BRMeshBridge:
         if self.config.get('use_addon_mqtt', True):
             # Auto-discover Home Assistant's MQTT service
             self.mqtt_host = os.getenv('MQTT_HOST', 'core-mosquitto')
-            self.mqtt_port = int(os.getenv('MQTT_PORT', '1883'))
+            mqtt_port_str = os.getenv('MQTT_PORT', '1883')
+            self.mqtt_port = int(mqtt_port_str) if mqtt_port_str and mqtt_port_str != 'null' else 1883
             self.mqtt_user = os.getenv('MQTT_USER', '')
             self.mqtt_password = os.getenv('MQTT_PASSWORD', '')
             logger.info("Using Home Assistant's MQTT service")
         else:
             # Use custom MQTT broker
             self.mqtt_host = self.config.get('mqtt_host', 'localhost')
-            self.mqtt_port = int(self.config.get('mqtt_port', 1883))
+            mqtt_port = self.config.get('mqtt_port', 1883)
+            self.mqtt_port = int(mqtt_port) if mqtt_port else 1883
             self.mqtt_user = self.config.get('mqtt_user', '')
             self.mqtt_password = self.config.get('mqtt_password', '')
             logger.info(f"Using custom MQTT broker: {self.mqtt_host}:{self.mqtt_port}")
         self.discovery_enabled = self.config.get('discovery_enabled', True)
-        
-        self.lights: Dict[int, dict] = {}
-        self.controllers: List[dict] = []
         self.mqtt_client = None
         self.effects = None
         self.web_ui = None
