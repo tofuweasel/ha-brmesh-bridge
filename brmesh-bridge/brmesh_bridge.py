@@ -408,16 +408,21 @@ class BRMeshBridge:
     
     def run(self):
         """Main run loop"""
-        logger.info("Starting BRMesh Bridge v0.9.11")
-        logger.info(f"Mesh Key: {self.mesh_key}")
-        logger.info(f"MQTT: {self.mqtt_host}:{self.mqtt_port}")
+        logger.info("=" * 80)
+        logger.info("=" * 80)
+        logger.info("🚀 BRMesh Bridge v0.9.15 - Starting Up")
+        logger.info("=" * 80)
+        logger.info(f"📡 Mesh Key: {self.mesh_key if self.mesh_key else '(not configured - use Web UI)'}")
+        logger.info(f"🔌 MQTT Broker: {self.mqtt_host}:{self.mqtt_port}")
+        logger.info(f"👤 MQTT User: {self.mqtt_user if self.mqtt_user else '(anonymous)'}")
+        logger.info("=" * 80)
         
         self.setup_mqtt()
         self.mqtt_client.loop_start()
         
         # Initialize effects engine
         self.effects = BRMeshEffects(self)
-        logger.info("Effects engine initialized")
+        logger.info("✨ Effects engine initialized")
         
         # Initialize web UI
         self.web_ui = WebUI(self)
@@ -430,15 +435,17 @@ class BRMeshBridge:
         web_thread.daemon = True
         web_thread.start()
         
-        logger.info("Web UI available at http://localhost:8099")
-        logger.info("=" * 60)
-        logger.info("BRMesh Bridge Ready!")
-        logger.info(f"  - {len(self.lights)} lights configured")
-        logger.info(f"  - {len(self.controllers)} controllers configured")
-        logger.info(f"  - BLE Discovery: {'Enabled' if self.config.get('enable_ble_discovery') else 'Disabled'}")
-        logger.info(f"  - ESPHome Configs: {'Enabled' if self.config.get('generate_esphome_configs') else 'Disabled'}")
-        logger.info(f"  - NSPanel UI: {'Enabled' if self.config.get('enable_nspanel_ui') else 'Disabled'}")
-        logger.info("=" * 60)
+        logger.info("🌐 Web UI available at http://localhost:8099")
+        logger.info("=" * 80)
+        logger.info("✅ BRMesh Bridge Ready!")
+        logger.info(f"  💡 {len(self.lights)} lights configured")
+        logger.info(f"  🎮 {len(self.controllers)} controllers configured")
+        logger.info(f"  📶 BLE Discovery: {'Enabled' if self.config.get('enable_ble_discovery') else 'Disabled'}")
+        logger.info(f"  ⚙️  ESPHome Configs: {'Enabled' if self.config.get('generate_esphome_configs') else 'Disabled'}")
+        logger.info(f"  📱 NSPanel UI: {'Enabled' if self.config.get('enable_nspanel_ui') else 'Disabled'}")
+        logger.info("=" * 80)
+        logger.info("📋 Copy logs from the line above (80 = characters) for troubleshooting")
+        logger.info("=" * 80)
         
         # Run async tasks
         try:
