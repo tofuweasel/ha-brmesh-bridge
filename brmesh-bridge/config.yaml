@@ -1,5 +1,5 @@
 name: BRMesh Bridge
-version: "0.9.13"
+version: "0.9.14"
 slug: brmesh-bridge
 description: Advanced BRMesh light management with map view, effects, and multi-controller support
 url: https://github.com/tofuweasel/ha-brmesh-bridge
@@ -21,7 +21,5 @@ ingress: true
 ingress_port: 8099
 panel_icon: mdi:lightbulb-group
 webui: http://[HOST]:[PORT:8099]
-options:
-  mesh_key: ""
-schema:
-  mesh_key: "str?"
+options: {}
+schema: {}
