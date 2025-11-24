@@ -4,7 +4,7 @@ NSPanel TFT UI Generator for BRMesh Lights
 Generates Nextion HMI commands to display light controls on NSPanel
 """
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 import json
 
 logger = logging.getLogger(__name__)
