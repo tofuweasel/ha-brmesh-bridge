@@ -10,7 +10,7 @@ RUN apk add --no-cache \
     nginx
 
 # Install Python packages
-RUN pip3 install --no-cache-dir \
+RUN pip3 install --break-system-packages --no-cache-dir \
     paho-mqtt \
     bleak \
     pyyaml \
