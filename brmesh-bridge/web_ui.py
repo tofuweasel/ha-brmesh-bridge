@@ -15,7 +15,7 @@ from esphome_generator import ESPHomeConfigGenerator
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='/static', template_folder='/templates')
 CORS(app)
 
 class WebUI:
