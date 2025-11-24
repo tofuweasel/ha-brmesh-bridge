@@ -272,25 +272,29 @@ All files should be accessible and return proper content.
 
 ## Step 8: Add to Home Assistant via HACS
 
-### Method 1: Custom Repository
-
-1. Open Home Assistant
-2. Go to **HACS** → **Integrations**
-3. Click ⋮ (three dots) → **Custom repositories**
-4. Add:
-   - **Repository**: `http://www.buckleup.cc/brmesh-bridge`
-   - **Category**: Add-on
-5. Click **Add**
-6. Search for "BRMesh Bridge"
-7. Click **Download**
-
-### Method 2: Direct Add-on Installation
+### Method 1: Direct Add-on Installation (Recommended)
 
 1. Go to **Settings** → **Add-ons**
-2. Click **Add-on Store** → ⋮ → **Repositories**
-3. Add: `http://www.buckleup.cc/brmesh-bridge`
-4. The add-on appears in the store
-5. Click **Install**
+2. Click **Add-on Store** → ⋮ (three dots) → **Repositories**
+3. Add: `https://www.buckleup.cc/brmesh-bridge`
+4. Click **Add**
+5. Refresh the page
+6. Search for "BRMesh Bridge" in the add-on store
+7. Click **Install**
+
+### Method 2: Manual Installation
+
+If the repository doesn't appear:
+
+1. SSH into Home Assistant
+2. Navigate to `/addons` directory
+3. Clone the repository:
+   ```bash
+   cd /addons
+   git clone https://www.buckleup.cc/brmesh-bridge.git
+   ```
+4. Restart Home Assistant
+5. The add-on appears in the local add-ons section
 
 ---
 
