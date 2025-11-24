@@ -25,30 +25,3 @@ options:
   mesh_key: ""
 schema:
   mesh_key: "str?"
-  controllers:
-    - name: str
-      ip_address: str
-      mac_address: str?
-      location_x: float?
-      location_y: float?
-  lights:
-    - light_id: int
-      name: str
-      color_interlock: bool?
-      supports_cwww: bool?
-      location_x: float?
-      location_y: float?
-      preferred_controller: str?
-  scenes:
-    - name: str
-      lights:
-        - light_id: int
-          state: bool
-          brightness: int(0,255)?
-          rgb:
-            - int(0,255)
-            - int(0,255)
-            - int(0,255)
-  effects:
-    - name: str
-      enabled: bool
