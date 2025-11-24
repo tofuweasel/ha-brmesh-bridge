@@ -387,6 +387,7 @@ class WebUI:
                         return jsonify({
                             'success': True,
                             'lights_imported': len(result.get('lights', [])),
+                            'mesh_key': result.get('mesh_key', ''),
                             'method': 'json'
                         })
                 

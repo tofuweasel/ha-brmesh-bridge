@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMap();
     
     // Setup event listeners
+    document.getElementById('import-app-btn').addEventListener('click', importFromAppHeader);
     document.getElementById('scan-btn').addEventListener('click', scanForLights);
     document.getElementById('refresh-btn').addEventListener('click', refreshAll);
     document.getElementById('save-layout-btn').addEventListener('click', saveLayout);
@@ -676,6 +677,42 @@ async function importFromApp() {
     } catch (error) {
         console.error('Failed to import from app:', error);
         showNotification('Failed to import from app: ' + error.message, 'error');
+    }
+}
+
+// Header button version with instructions
+async function importFromAppHeader() {
+    const instructions = 'This will import lights and mesh key from your BRMesh app export.\n\n' +
+                        '1. Open BRMesh app on your phone\n' +
+                        '2. Export configuration to a file\n' +
+                        '3. Copy the file to Home Assistant at: /share/brmesh_export.json\n' +
+                        '4. Click OK to import\n\n' +
+                        'Continue?';
+    
+    if (!confirm(instructions)) return;
+    
+    try {
+        showNotification('Importing from BRMesh app...', 'info');
+        const response = await fetch('/api/settings/import-app', { method: 'POST' });
+        const result = await response.json();
+        
+        if (response.ok) {
+            const message = `✅ Import successful!\n\n` +
+                          `Lights: ${result.lights_imported || 0}\n` +
+                          `Mesh Key: ${result.mesh_key ? '✓ Updated' : '⚠ Not found'}\n\n` +
+                          `The add-on will now reload with your settings.`;
+            showNotification(message, 'success');
+            
+            // Reload after a delay
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        } else {
+            throw new Error(result.error || 'Import failed');
+        }
+    } catch (error) {
+        console.error('Failed to import from app:', error);
+        showNotification('❌ Import failed: ' + error.message + '\n\nMake sure the export file is at /share/brmesh_export.json', 'error');
     }
 }
 
