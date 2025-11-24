@@ -25,6 +25,9 @@ RUN pip3 install --break-system-packages --no-cache-dir \
 # Copy addon files
 COPY rootfs /
 
+# Make service scripts executable
+RUN chmod a+x /etc/services.d/brmesh-bridge/run /etc/services.d/brmesh-bridge/finish
+
 # Build arguments
 ARG BUILD_ARCH
 ARG BUILD_DATE
