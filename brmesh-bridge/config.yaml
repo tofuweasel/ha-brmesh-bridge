@@ -86,8 +86,11 @@ schema:
       lights:
         - light_id: int
           state: bool
-          brightness: int?
-          rgb: list?
+          brightness: int(0,255)?
+          rgb:
+            - int(0,255)
+            - int(0,255)
+            - int(0,255)
   effects:
     - name: str
       enabled: bool
