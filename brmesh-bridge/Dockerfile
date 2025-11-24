@@ -6,21 +6,21 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install requirements
 RUN apk add --no-cache \
-    python3=3.12.7-r1 \
-    py3-pip=24.3.1-r0 \
-    bluez=5.78-r1 \
-    bluez-deprecated=5.78-r1
+    python3 \
+    py3-pip \
+    bluez \
+    bluez-deprecated
 
-# Install Python packages
+# Install Python packages (latest stable versions)
 RUN pip3 install --break-system-packages --no-cache-dir \
-    paho-mqtt==2.1.0 \
-    bleak==0.22.3 \
-    pyyaml==6.0.2 \
-    flask==3.0.3 \
-    flask-cors==5.0.0 \
-    requests==2.32.3 \
-    pillow==11.0.0 \
-    numpy==2.1.3
+    paho-mqtt>=2.0.0,<3.0.0 \
+    bleak>=0.22.0,<1.0.0 \
+    pyyaml>=6.0.0,<7.0.0 \
+    flask>=3.0.0,<4.0.0 \
+    flask-cors>=5.0.0,<6.0.0 \
+    requests>=2.32.0,<3.0.0 \
+    pillow>=10.0.0,<12.0.0 \
+    numpy>=2.0.0,<3.0.0
 
 # Copy addon files
 COPY rootfs /
