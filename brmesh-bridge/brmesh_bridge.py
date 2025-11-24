@@ -91,6 +91,8 @@ class BRMeshBridge:
                 logger.info(f"Loaded {len(self.lights)} lights and {len(self.controllers)} controllers from config")
         except Exception as e:
             logger.error(f"Error loading config: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
     
     def save_config(self):
         """Save configuration back to file"""
