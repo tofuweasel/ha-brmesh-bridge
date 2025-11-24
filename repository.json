@@ -1,0 +1,98 @@
+{
+  "name": "BRMesh Bridge Pro",
+  "url": "http://www.buckleup.cc/brmesh-bridge",
+  "version": "2.0.0",
+  "slug": "brmesh-bridge",
+  "description": "Bridge BRMesh/Fastcon BLE lights to Home Assistant with GUI configuration, BLE discovery, effects engine, and phone-free operation",
+  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
+  "startup": "application",
+  "boot": "auto",
+  "ingress": true,
+  "ingress_port": 8099,
+  "panel_icon": "mdi:lightbulb-multiple",
+  "homeassistant_api": true,
+  "hassio_api": true,
+  "hassio_role": "default",
+  "auth_api": false,
+  "host_network": false,
+  "bluetooth": true,
+  "mqtt": "optional",
+  "options": {
+    "mesh_key": "",
+    "use_addon_mqtt": true,
+    "mqtt_host": "",
+    "mqtt_port": 1883,
+    "mqtt_user": "",
+    "mqtt_password": "",
+    "latitude": 0,
+    "longitude": 0,
+    "zoom": 18,
+    "map_enabled": true,
+    "discovery_enabled": true,
+    "generate_esphome": true,
+    "enable_ble": true,
+    "enable_nspanel": false,
+    "nspanel_entity_id": "",
+    "app_config_path": "/share/brmesh_export.json",
+    "controllers": [],
+    "lights": {},
+    "scenes": []
+  },
+  "schema": {
+    "mesh_key": "str?",
+    "use_addon_mqtt": "bool",
+    "mqtt_host": "str?",
+    "mqtt_port": "port?",
+    "mqtt_user": "str?",
+    "mqtt_password": "password?",
+    "latitude": "float?",
+    "longitude": "float?",
+    "zoom": "int(15,20)?",
+    "map_enabled": "bool",
+    "discovery_enabled": "bool",
+    "generate_esphome": "bool",
+    "enable_ble": "bool",
+    "enable_nspanel": "bool",
+    "nspanel_entity_id": "str?",
+    "app_config_path": "str?",
+    "controllers": [
+      {
+        "name": "str",
+        "ip_address": "str",
+        "mac_address": "str",
+        "location": "str?",
+        "latitude": "float?",
+        "longitude": "float?"
+      }
+    ],
+    "lights": {
+      "light_id": "int(1,255)",
+      "name": "str",
+      "color_interlock": "bool?",
+      "supports_cwww": "bool?",
+      "preferred_controller": "str?",
+      "location": {
+        "latitude": "float?",
+        "longitude": "float?"
+      }
+    },
+    "scenes": [
+      {
+        "name": "str",
+        "lights": [
+          {
+            "light_id": "int(1,255)",
+            "state": "bool",
+            "brightness": "int(0,255)?",
+            "rgb": [
+              "int(0,255)",
+              "int(0,255)",
+              "int(0,255)"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "image": "ghcr.io/buckleup/{arch}-brmesh-bridge"
+}

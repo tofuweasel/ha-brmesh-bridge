@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRMesh Bridge - Light Management</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔆 BRMesh Bridge</h1>
+            <div class="header-controls">
+                <button id="scan-btn" class="btn btn-primary">🔍 Scan for Lights</button>
+                <button id="refresh-btn" class="btn btn-secondary">🔄 Refresh</button>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="map">🗺️ Map View</button>
+            <button class="tab-btn" data-tab="lights">💡 Lights</button>
+            <button class="tab-btn" data-tab="effects">✨ Effects</button>
+            <button class="tab-btn" data-tab="scenes">🎬 Scenes</button>
+            <button class="tab-btn" data-tab="controllers">📡 Controllers</button>
+            <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+        </div>
+
+        <!-- Map View Tab -->
+        <div id="map-tab" class="tab-content active">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="map-controls">
+                    <div class="control-group">
+                        <label>
+                            <input type="checkbox" id="show-signal-strength" />
+                            Show Signal Strength
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <label>
+                            <input type="checkbox" id="show-controllers" checked />
+                            Show Controllers
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <button id="save-layout-btn" class="btn btn-success">💾 Save Layout</button>
+                    </div>
+                </div>
+            </div>
+            <div class="placement-guide">
+                <h3>Light Placement Guide</h3>
+                <p>Drag lights to their physical locations on the map. Signal strength indicators will help optimize ESP32 controller placement.</p>
+            </div>
+        </div>
+
+        <!-- Lights Tab -->
+        <div id="lights-tab" class="tab-content">
+            <div class="lights-grid" id="lights-grid">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Effects Tab -->
+        <div id="effects-tab" class="tab-content">
+            <div class="effects-panel">
+                <h2>Light Effects</h2>
+                <div class="effect-selection">
+                    <label>Select Lights:</label>
+                    <div id="light-selector" class="light-checkboxes">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="effects-grid" id="effects-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div class="running-effects">
+                    <h3>Running Effects</h3>
+                    <div id="running-effects-list">
+                        <p class="empty-message">No effects running</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenes Tab -->
+        <div id="scenes-tab" class="tab-content">
+            <div class="scenes-panel">
+                <h2>Holiday & Custom Scenes</h2>
+                <div class="scenes-grid" id="scenes-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <button id="create-scene-btn" class="btn btn-primary">➕ Create New Scene</button>
+            </div>
+        </div>
+
+        <!-- Controllers Tab -->
+        <div id="controllers-tab" class="tab-content">
+            <div class="controllers-panel">
+                <h2>ESP32 Controllers</h2>
+                <div class="controllers-grid" id="controllers-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div class="signal-matrix">
+                    <h3>Signal Strength Matrix</h3>
+                    <div id="signal-matrix">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                <button id="add-controller-btn" class="btn btn-primary">➕ Add Controller</button>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="settings-panel">
+                <h2>⚙️ Configuration</h2>
+                
+                <div class="settings-section">
+                    <h3>Core Settings</h3>
+                    <div class="form-group">
+                        <label for="mesh-key">Mesh Key (8 hex characters):</label>
+                        <input type="text" id="mesh-key" maxlength="8" pattern="[0-9a-fA-F]{8}" />
+                        <small>Extract from BRMesh app via ADB logcat</small>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>MQTT Configuration</h3>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="use-addon-mqtt" checked />
+                            Use Home Assistant's MQTT service (recommended)
+                        </label>
+                    </div>
+                    <div id="custom-mqtt-settings" style="display: none;">
+                        <div class="form-group">
+                            <label for="mqtt-host">MQTT Broker Host:</label>
+                            <input type="text" id="mqtt-host" placeholder="mqtt.example.com" />
+                        </div>
+                        <div class="form-group">
+                            <label for="mqtt-port">MQTT Port:</label>
+                            <input type="number" id="mqtt-port" value="1883" />
+                        </div>
+                        <div class="form-group">
+                            <label for="mqtt-user">MQTT Username:</label>
+                            <input type="text" id="mqtt-user" />
+                        </div>
+                        <div class="form-group">
+                            <label for="mqtt-password">MQTT Password:</label>
+                            <input type="password" id="mqtt-password" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Map Configuration</h3>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="map-enabled" checked />
+                            Enable Map View
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="map-latitude">Property Latitude:</label>
+                        <input type="number" id="map-latitude" step="0.000001" placeholder="37.7749" />
+                        <small>Find on Google Maps by right-clicking</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="map-longitude">Property Longitude:</label>
+                        <input type="number" id="map-longitude" step="0.000001" placeholder="-122.4194" />
+                    </div>
+                    <div class="form-group">
+                        <label for="map-zoom">Default Zoom Level:</label>
+                        <input type="range" id="map-zoom" min="15" max="20" value="18" />
+                        <span id="zoom-value">18</span>
+                        <small>18 = high detail, 15 = neighborhood view</small>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Features</h3>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="discovery-enabled" checked />
+                            MQTT Auto-Discovery (Home Assistant)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="generate-esphome" checked />
+                            Auto-generate ESPHome Configurations
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enable-ble" checked />
+                            BLE Device Discovery
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enable-nspanel" />
+                            NSPanel UI Integration
+                        </label>
+                    </div>
+                    <div class="form-group" id="nspanel-settings" style="display: none;">
+                        <label for="nspanel-entity">NSPanel Entity ID:</label>
+                        <input type="text" id="nspanel-entity" placeholder="climate.nspanel_living_room" />
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Import/Export</h3>
+                    <div class="form-group">
+                        <label for="app-config-path">BRMesh App Export Path:</label>
+                        <input type="text" id="app-config-path" value="/share/brmesh_export.json" />
+                        <small>Path to JSON export from BRMesh app</small>
+                    </div>
+                    <button class="btn btn-secondary" onclick="importFromApp()">📱 Import from App</button>
+                    <button class="btn btn-secondary" onclick="exportConfig()">💾 Export Configuration</button>
+                </div>
+
+                <div class="settings-actions">
+                    <button id="save-settings-btn" class="btn btn-primary">💾 Save Settings</button>
+                    <button id="reset-settings-btn" class="btn btn-danger">🔄 Reset to Defaults</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div id="color-picker-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Pick Color</h2>
+            <input type="color" id="color-input" value="#ffffff">
+            <div class="brightness-control">
+                <label>Brightness:</label>
+                <input type="range" id="brightness-input" min="0" max="255" value="255">
+                <span id="brightness-value">255</span>
+            </div>
+            <button id="apply-color-btn" class="btn btn-primary">Apply</button>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,581 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: #333;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    font-size: 2rem;
+    color: #2a5298;
+}
+
+.header-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #45a049;
+}
+
+.btn-secondary {
+    background: #2196F3;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #0b7dda;
+}
+
+.btn-success {
+    background: #FF9800;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #e68900;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #da190b;
+}
+
+.tabs {
+    display: flex;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.3s;
+    border-right: 1px solid #e0e0e0;
+}
+
+.tab-btn:last-child {
+    border-right: none;
+}
+
+.tab-btn:hover {
+    background: #f5f5f5;
+}
+
+.tab-btn.active {
+    background: #2a5298;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Map View */
+.map-container {
+    position: relative;
+    height: 600px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+.map-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.control-group {
+    margin-bottom: 10px;
+}
+
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
+.placement-guide {
+    padding: 15px;
+    background: #e3f2fd;
+    border-left: 4px solid #2196F3;
+    border-radius: 4px;
+}
+
+/* Lights Grid */
+.lights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.light-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s;
+}
+
+.light-card:hover {
+    border-color: #2196F3;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.light-card.active {
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.light-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.light-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.light-status {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ccc;
+}
+
+.light-status.on {
+    background: #4CAF50;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+.light-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.light-controls button {
+    flex: 1;
+}
+
+.color-preview {
+    width: 100%;
+    height: 40px;
+    border-radius: 4px;
+    margin-top: 10px;
+    cursor: pointer;
+    border: 2px solid #e0e0e0;
+}
+
+/* Effects Grid */
+.effects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.effect-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s;
+    text-align: center;
+}
+
+.effect-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.effect-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.effect-description {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.light-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0 20px 0;
+}
+
+.light-checkboxes label {
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.light-checkboxes label:hover {
+    background: #e0e0e0;
+}
+
+.light-checkboxes input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.running-effects {
+    margin-top: 30px;
+}
+
+.running-effect-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.empty-message {
+    color: #999;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Scenes Grid */
+.scenes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.scene-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.scene-card:hover {
+    border-color: #FF9800;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.scene-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.scene-preview {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.scene-color {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+/* Controllers Grid */
+.controllers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+/* Settings Tab Styles */
+.settings-panel {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.settings-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.settings-section h3 {
+    margin-top: 0;
+    color: #4CAF50;
+    border-bottom: 2px solid rgba(76, 175, 80, 0.3);
+    padding-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ccc;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+}
+
+.form-group input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.form-group input[type="range"] {
+    width: calc(100% - 50px);
+    margin-right: 10px;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    color: #888;
+    font-size: 12px;
+}
+
+#zoom-value {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.settings-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 30px;
+}
+.controller-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.controller-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.status-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.status-indicator.online {
+    background: #4CAF50;
+}
+
+.status-indicator.offline {
+    background: #f44336;
+}
+
+.controller-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.signal-matrix {
+    margin-top: 30px;
+}
+
+.signal-matrix table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.signal-matrix th,
+.signal-matrix td {
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+.signal-matrix th {
+    background: #f5f5f5;
+    font-weight: bold;
+}
+
+.signal-strong {
+    background: #4CAF50;
+    color: white;
+}
+
+.signal-medium {
+    background: #FF9800;
+    color: white;
+}
+
+.signal-weak {
+    background: #f44336;
+    color: white;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 400px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.brightness-control {
+    margin: 20px 0;
+}
+
+.brightness-control input[type="range"] {
+    width: 100%;
+    margin: 10px 0;
+}
+
+#color-input {
+    width: 100%;
+    height: 60px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Leaflet Custom Markers */
+.light-marker {
+    background: #4CAF50;
+    border: 3px solid white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: grab;
+}
+
+.light-marker:active {
+    cursor: grabbing;
+}
+
+.controller-marker {
+    background: #2196F3;
+    border: 3px solid white;
+    border-radius: 4px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
