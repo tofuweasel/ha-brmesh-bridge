@@ -570,12 +570,23 @@ async function saveController() {
     const ip = document.getElementById('controller-ip').value.trim();
     const mac = document.getElementById('controller-mac').value.trim();
     const generateEsphome = document.getElementById('controller-generate-esphome').checked;
-    const lat = parseFloat(document.getElementById('controller-lat').value) || null;
-    const lon = parseFloat(document.getElementById('controller-lon').value) || null;
+    const lat = parseFloat(document.getElementById('controller-lat').value);
+    const lon = parseFloat(document.getElementById('controller-lon').value);
     
     if (!name) {
         showNotification('Please enter a controller name', 'error');
         return;
+    }
+    
+    // Default to HA instance location if not specified
+    let location;
+    if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+        location = { x: lon, y: lat };
+    } else if (config.map_latitude && config.map_longitude) {
+        // Use Home Assistant's location as default
+        location = { x: config.map_longitude, y: config.map_latitude };
+    } else {
+        location = { x: 0, y: 0 };
     }
     
     const controllerData = {
@@ -583,7 +594,7 @@ async function saveController() {
         ip: ip || null,
         mac: mac || null,
         generate_esphome: generateEsphome,
-        location: lat && lon ? { x: lon, y: lat } : null
+        location
     };
     
     try {
@@ -644,6 +655,11 @@ function initMap() {
 }
 
 function updateMapMarkers() {
+    // Check if map is initialized
+    if (!map) {
+        return;
+    }
+    
     // Clear existing markers
     Object.values(lightMarkers).forEach(marker => map.removeLayer(marker));
     Object.values(controllerMarkers).forEach(marker => map.removeLayer(marker));

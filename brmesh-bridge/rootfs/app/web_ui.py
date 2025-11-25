@@ -184,6 +184,8 @@ class WebUI:
             """Add a new ESP32 controller"""
             try:
                 controller_data = request.json
+                logger.info(f"📡 Received controller data: {controller_data}")
+                
                 # Generate unique ID
                 controller_id = len(self.bridge.config.get('controllers', [])) + 1
                 controller_data['id'] = controller_id
@@ -197,8 +199,10 @@ class WebUI:
                 if controller_data.get('generate_esphome') and self.bridge.esphome_generator:
                     esphome_path = self.bridge.esphome_generator.generate_controller_config(controller_data)
                 
+                logger.info(f"✅ Controller added successfully with ID: {controller_id}")
                 return jsonify({'success': True, 'id': controller_id, 'esphome_path': esphome_path})
             except Exception as e:
+                logger.error(f"❌ Error adding controller: {str(e)}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/map/satellite')
