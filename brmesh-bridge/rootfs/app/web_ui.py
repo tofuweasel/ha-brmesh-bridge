@@ -970,29 +970,50 @@ class WebUI:
         def get_secrets_raw():
             """Get raw secrets.yaml content to debug formatting issues"""
             try:
-                secrets_path = '/config/secrets.yaml'
+                ha_secrets_path = '/config/secrets.yaml'
+                esphome_secrets_path = '/config/esphome/secrets.yaml'
                 
-                if not os.path.exists(secrets_path):
-                    return jsonify({'error': 'secrets.yaml not found'}), 404
+                result = {}
                 
-                with open(secrets_path, 'r') as f:
-                    content = f.read()
+                # Check HA secrets
+                if os.path.exists(ha_secrets_path):
+                    with open(ha_secrets_path, 'r') as f:
+                        content = f.read()
+                    lines = content.split('\n')
+                    result_lines = []
+                    for i, line in enumerate(lines):
+                        if 'api_encryption_key' in line or 'ota_password' in line:
+                            start = max(0, i - 1)
+                            end = min(len(lines), i + 2)
+                            result_lines.extend(lines[start:end])
+                    result['ha_secrets'] = {
+                        'relevant_lines': '\n'.join(result_lines),
+                        'file_size': len(content),
+                        'total_lines': len(lines)
+                    }
+                else:
+                    result['ha_secrets'] = {'error': 'Not found'}
                 
-                # Return relevant lines around api_encryption_key
-                lines = content.split('\n')
-                result_lines = []
-                for i, line in enumerate(lines):
-                    if 'api_encryption_key' in line or 'ota_password' in line or 'wifi_ssid' in line or 'wifi_password' in line:
-                        # Include context lines
-                        start = max(0, i - 1)
-                        end = min(len(lines), i + 2)
-                        result_lines.extend(lines[start:end])
+                # Check ESPHome secrets
+                if os.path.exists(esphome_secrets_path):
+                    with open(esphome_secrets_path, 'r') as f:
+                        content = f.read()
+                    lines = content.split('\n')
+                    result_lines = []
+                    for i, line in enumerate(lines):
+                        if 'api_encryption_key' in line or 'ota_password' in line:
+                            start = max(0, i - 1)
+                            end = min(len(lines), i + 2)
+                            result_lines.extend(lines[start:end])
+                    result['esphome_secrets'] = {
+                        'relevant_lines': '\n'.join(result_lines),
+                        'file_size': len(content),
+                        'total_lines': len(lines)
+                    }
+                else:
+                    result['esphome_secrets'] = {'error': 'Not found'}
                 
-                return jsonify({
-                    'relevant_lines': '\n'.join(result_lines),
-                    'file_size': len(content),
-                    'total_lines': len(lines)
-                })
+                return jsonify(result)
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
