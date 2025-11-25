@@ -185,6 +185,45 @@ class WebUI:
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)}), 500
         
+        @app.route('/api/controllers/<int:controller_id>', methods=['DELETE'])
+        def delete_controller(controller_id):
+            """Delete a controller"""
+            try:
+                if 'controllers' not in self.bridge.config:
+                    return jsonify({'success': False, 'error': 'No controllers configured'}), 404
+                
+                # Find and remove controller
+                controllers = self.bridge.config['controllers']
+                controller = next((c for c in controllers if c.get('id') == controller_id), None)
+                
+                if not controller:
+                    return jsonify({'success': False, 'error': 'Controller not found'}), 404
+                
+                controllers.remove(controller)
+                self.bridge.save_config()
+                
+                logger.info(f"🗑️  Deleted controller: {controller.get('name')} (ID: {controller_id})")
+                return jsonify({'success': True})
+                
+            except Exception as e:
+                logger.error(f"Failed to delete controller: {e}")
+                return jsonify({'success': False, 'error': str(e)}), 500
+        
+        @app.route('/api/esphome/build-status/<controller_name>')
+        def get_build_status(controller_name):
+            """Check if firmware has been built for a controller"""
+            try:
+                # Check for .bin file in ESPHome build directory
+                build_path = f'/config/esphome/.esphome/build/{controller_name}/.pioenvs/{controller_name}/firmware.bin'
+                built = os.path.exists(build_path)
+                
+                return jsonify({
+                    'built': built,
+                    'path': build_path if built else None
+                })
+            except Exception as e:
+                return jsonify({'built': False, 'error': str(e)}), 500
+        
         @app.route('/api/effects', methods=['GET'])
         def list_effects():
             """List available effects"""

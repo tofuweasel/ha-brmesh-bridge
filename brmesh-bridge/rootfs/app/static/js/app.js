@@ -536,18 +536,24 @@ function renderControllers() {
         
         const controllerName = controller.name.toLowerCase().replace(/ /g, '-');
         
-        // Determine status badges
+        // Check if firmware is built (async, will update badge when complete)
+        const builtBadge = '<span id="built-' + controller.id + '">⏳ Checking...</span>';
+        checkFirmwareBuild(controller.id, controllerName);
+        
+        // Check online status (async, will update badge when complete)
+        const onlineBadge = '<span id="online-' + controller.id + '">⏳ Checking...</span>';
+        checkControllerOnline(controller.id, controller.ip);
+        
+        // Determine config status
         const hasConfig = controller.esphome_path ? '✅ Config' : '❌ No Config';
-        const hasIP = controller.ip ? '🟢 Online' : '🔴 Offline';
-        const builtStatus = controller.esphome_path ? '📦 Ready for Build' : '';
         
         card.innerHTML = `
             <div class="controller-status">
                 <strong>${controller.name}</strong>
                 <div style="margin-top: 5px; font-size: 0.85em;">
                     <span style="margin-right: 10px;">${hasConfig}</span>
-                    <span style="margin-right: 10px;">${hasIP}</span>
-                    ${builtStatus ? `<span>${builtStatus}</span>` : ''}
+                    <span style="margin-right: 10px;">${onlineBadge}</span>
+                    <span style="margin-right: 10px;">${builtBadge}</span>
                 </div>
             </div>
             <div class="controller-info">
@@ -558,11 +564,80 @@ function renderControllers() {
             <div class="controller-actions">
                 <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
                 <button class="btn btn-success" onclick="window.open('/config/esphome', '_blank')">🔧 Open ESPHome</button>
+                <button class="btn btn-danger" onclick="deleteController(${controller.id}, '${controller.name}')">🗑️ Delete</button>
             </div>
         `;
         
         grid.appendChild(card);
     });
+}
+
+async function checkControllerOnline(controllerId, ip) {
+    const badge = document.getElementById('online-' + controllerId);
+    if (!badge) return;
+    
+    if (!ip) {
+        badge.innerHTML = '🔴 No IP';
+        return;
+    }
+    
+    try {
+        // Try to fetch ESPHome API status endpoint with short timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch(`http://${ip}/`, { 
+            signal: controller.signal,
+            mode: 'no-cors' // Avoid CORS issues
+        });
+        clearTimeout(timeout);
+        
+        badge.innerHTML = '🟢 Online';
+    } catch (error) {
+        badge.innerHTML = '🔴 Offline';
+    }
+}
+
+async function checkFirmwareBuild(controllerId, controllerName) {
+    const badge = document.getElementById('built-' + controllerId);
+    if (!badge) return;
+    
+    try {
+        // Check if .bin file exists in ESPHome build directory
+        const response = await fetch(`/api/esphome/build-status/${controllerName}`);
+        const data = await response.json();
+        
+        if (data.built) {
+            badge.innerHTML = '✅ Built';
+        } else {
+            badge.innerHTML = '📦 Ready to Build';
+        }
+    } catch (error) {
+        badge.innerHTML = '📦 Ready to Build';
+    }
+}
+
+async function deleteController(controllerId, controllerName) {
+    if (!confirm(`Delete controller "${controllerName}"?\n\nThis will remove the controller from the bridge but will NOT delete the ESPHome config file.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`api/controllers/${controllerId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`Controller "${controllerName}" deleted`, 'success');
+            await loadControllers();
+        } else {
+            showNotification(result.error || 'Failed to delete controller', 'error');
+        }
+    } catch (error) {
+        showNotification('Error deleting controller: ' + error.message, 'error');
+    }
 }
 
 async function createController() {
@@ -578,9 +653,12 @@ async function createController() {
         wifiNetworks = [];
     }
     
+    // Auto-select if only one network, otherwise show dropdown
+    const autoSelectNetwork = wifiNetworks.length === 1;
+    
     // Build network selector options using the id from the network object
     const networkOptions = wifiNetworks.map((net) => 
-        `<option value="${net.id}">📶 ${net.ssid}</option>`
+        `<option value="${net.id}" ${autoSelectNetwork ? 'selected' : ''}>${autoSelectNetwork ? '✅ ' : '📶 '}${net.ssid}</option>`
     ).join('');
     
     // Set default selection - first saved network if available, otherwise "new"
@@ -603,6 +681,7 @@ async function createController() {
                     ${networkOptions}
                     <option value="new">➕ Enter New Network</option>
                 </select>
+                ${autoSelectNetwork ? '<small style="color: green;">✅ Auto-selected (only one network saved)</small>' : ''}
             </div>
             
             <div id="wifi-manual-inputs" ${showManualInputs ? '' : 'style="display:none;"'}>
