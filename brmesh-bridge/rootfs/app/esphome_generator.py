@@ -97,7 +97,29 @@ class ESPHomeConfigGenerator:
             
             config['light'].append(light_config)
         
-        return yaml.dump(config, default_flow_style=False, sort_keys=False)
+        # Use custom YAML dumper that doesn't quote !secret tags
+        from ruamel.yaml import YAML
+        from ruamel.yaml.scalarstring import PlainScalarString
+        from io import StringIO
+        
+        # Convert !secret strings to plain scalars so they don't get quoted
+        def convert_secrets(obj):
+            if isinstance(obj, dict):
+                return {k: convert_secrets(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_secrets(item) for item in obj]
+            elif isinstance(obj, str) and obj.startswith('!secret '):
+                return PlainScalarString(obj)
+            else:
+                return obj
+        
+        config = convert_secrets(config)
+        
+        yaml_handler = YAML()
+        yaml_handler.default_flow_style = False
+        stream = StringIO()
+        yaml_handler.dump(config, stream)
+        return stream.getvalue()
     
     def generate_all_configs(self) -> Dict[str, str]:
         """Generate configs for all controllers"""
