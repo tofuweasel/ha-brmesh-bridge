@@ -18,18 +18,20 @@ RUN apk add --no-cache \
     make \
     python3-dev
 
-# Install Python packages (latest stable versions)
+# Install Python packages
+# Install ESPHome first to lock in its dependency versions (including paho-mqtt 1.6.1)
 RUN pip3 install --break-system-packages --no-cache-dir \
-    "paho-mqtt>=2.0.0,<3.0.0" \
+    "esphome>=2024.11.0" \
+    "platformio>=6.1.0"
+
+# Install remaining packages (compatible with ESPHome's dependencies)
+RUN pip3 install --break-system-packages --no-cache-dir \
     "bleak>=0.22.0,<1.0.0" \
-    "pyyaml>=6.0.0,<7.0.0" \
     "flask>=3.0.0,<4.0.0" \
     "flask-cors>=5.0.0,<6.0.0" \
     "requests>=2.32.0,<3.0.0" \
     "pillow>=10.0.0,<12.0.0" \
-    "numpy>=2.0.0,<3.0.0" \
-    "esphome>=2024.11.0" \
-    "platformio>=6.1.0"
+    "numpy>=2.0.0,<3.0.0"
 
 # Copy addon files
 COPY rootfs /
