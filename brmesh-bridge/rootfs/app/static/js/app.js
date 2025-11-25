@@ -563,7 +563,7 @@ function renderControllers() {
             </div>
             <div class="controller-actions">
                 <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
-                <button class="btn btn-success" onclick="window.open('/config/esphome', '_blank')">🔧 Open ESPHome</button>
+                <button class="btn btn-success" onclick="window.open('/5c53de3b_esphome/ingress', '_blank')">🔧 Open ESPHome</button>
                 <button class="btn btn-danger" onclick="deleteController(${controller.id}, '${controller.name}')">🗑️ Delete</button>
             </div>
         `;
