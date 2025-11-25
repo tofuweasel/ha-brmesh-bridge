@@ -573,6 +573,10 @@ async function createController() {
         `<option value="${net.id}">📶 ${net.ssid}</option>`
     ).join('');
     
+    // Set default selection - first saved network if available, otherwise "new"
+    const defaultSelection = wifiNetworks.length > 0 ? wifiNetworks[0].id : 'new';
+    const showManualInputs = wifiNetworks.length === 0;
+    
     // Create modal for building a new ESP32 from scratch
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -586,12 +590,12 @@ async function createController() {
             <div class="form-group">
                 <label for="wifi-network-selector">WiFi Network: <span style="color: red;">*</span></label>
                 <select id="wifi-network-selector" onchange="toggleWiFiInputs()">
-                    <option value="new">➕ Enter New Network</option>
                     ${networkOptions}
+                    <option value="new">➕ Enter New Network</option>
                 </select>
             </div>
             
-            <div id="wifi-manual-inputs" ${networkOptions ? 'style="display:none;"' : ''}>
+            <div id="wifi-manual-inputs" ${showManualInputs ? '' : 'style="display:none;"'}>
                 <div class="form-group">
                     <label for="wifi-ssid">WiFi SSID: <span style="color: red;">*</span></label>
                     <input type="text" id="wifi-ssid" placeholder="Your WiFi Network Name" required />
