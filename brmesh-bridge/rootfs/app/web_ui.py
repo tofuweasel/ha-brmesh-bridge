@@ -966,6 +966,34 @@ class WebUI:
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/diagnostics/esphome-config/<controller_name>')
+        def get_esphome_config(controller_name):
+            """Get raw ESPHome config to debug formatting"""
+            try:
+                config_path = f'/config/esphome/{controller_name}.yaml'
+                if not os.path.exists(config_path):
+                    return jsonify({'error': f'Config not found: {config_path}'}), 404
+                
+                with open(config_path, 'r') as f:
+                    content = f.read()
+                
+                # Return relevant lines around api section
+                lines = content.split('\n')
+                result_lines = []
+                for i, line in enumerate(lines):
+                    if 'api:' in line or 'encryption' in line or 'key:' in line or '!secret' in line:
+                        start = max(0, i - 2)
+                        end = min(len(lines), i + 3)
+                        result_lines.extend(lines[start:end])
+                
+                return jsonify({
+                    'full_config': content,
+                    'api_section': '\n'.join(result_lines),
+                    'file_path': config_path
+                })
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
         @app.route('/api/diagnostics/secrets-raw')
         def get_secrets_raw():
             """Get raw secrets.yaml content to debug formatting issues"""
