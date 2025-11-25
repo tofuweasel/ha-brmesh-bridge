@@ -528,36 +528,35 @@ function createController() {
         <div class="modal-content">
             <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
             <h2>🔨 Create New ESP32 Controller</h2>
-            <p>Build and flash a new ESP32 controller from scratch. This will compile firmware and flash it to your device.</p>
+            <p>Build and flash a new ESP32 controller. Just provide your WiFi credentials and we'll handle the rest!</p>
             
             <div class="form-group">
-                <label for="controller-name">Controller Name:</label>
-                <input type="text" id="controller-name" placeholder="e.g., Front Yard, Backyard, Garage" />
+                <label for="wifi-ssid">WiFi SSID: <span style="color: red;">*</span></label>
+                <input type="text" id="wifi-ssid" placeholder="Your WiFi Network Name" required />
             </div>
             
             <div class="form-group">
-                <label for="controller-ip">Controller IP Address:</label>
-                <input type="text" id="controller-ip" placeholder="192.168.1.100" />
-                <small>This will be set in the WiFi configuration</small>
+                <label for="wifi-password">WiFi Password: <span style="color: red;">*</span></label>
+                <input type="password" id="wifi-password" placeholder="Your WiFi Password" required />
+                <small>Stored securely in /config/secrets.yaml</small>
             </div>
             
             <div class="form-group">
-                <h3>Location (for signal optimization)</h3>
-                <label for="controller-lat">Latitude:</label>
-                <input type="number" id="controller-lat" step="0.000001" placeholder="41.0199" value="${config.map_latitude || ''}" />
-                <label for="controller-lon">Longitude:</label>
-                <input type="number" id="controller-lon" step="0.000001" placeholder="-73.8286" value="${config.map_longitude || ''}" />
-                <small>Click on the map to set location automatically</small>
+                <label for="controller-name">Controller Name (optional):</label>
+                <input type="text" id="controller-name" placeholder="Leave blank to auto-generate (brmesh_bridge, brmesh_bridge_1, etc.)" />
+                <small>Auto-generated if not specified</small>
             </div>
             
             <div class="info-box">
-                <strong>Next Steps:</strong>
+                <strong>What happens next:</strong>
                 <ol>
-                    <li>Click "Create & Build" to generate ESPHome config and compile firmware</li>
+                    <li>Controller config and WiFi secrets are generated automatically</li>
+                    <li>Firmware compiles (takes 5-10 minutes first time)</li>
                     <li>Connect your ESP32 via USB</li>
-                    <li>Use the "Flash" button to upload firmware</li>
-                    <li>Power on your ESP32 and it will appear in Home Assistant</li>
+                    <li>Click "Flash" to upload firmware</li>
+                    <li>Your ESP32 connects to WiFi and appears in Home Assistant!</li>
                 </ol>
+                <p><small>💡 Name, IP, and location can be configured later in the Controllers tab.</small></p>
             </div>
             
             <div class="modal-buttons">
@@ -666,32 +665,27 @@ async function saveController() {
 }
 
 async function saveControllerAndBuild() {
+    const wifiSsid = document.getElementById('wifi-ssid').value.trim();
+    const wifiPassword = document.getElementById('wifi-password').value.trim();
     const name = document.getElementById('controller-name').value.trim();
-    const ip = document.getElementById('controller-ip').value.trim();
-    const lat = parseFloat(document.getElementById('controller-lat').value);
-    const lon = parseFloat(document.getElementById('controller-lon').value);
     
-    if (!name) {
-        showNotification('Please enter a controller name', 'error');
+    // Validate WiFi credentials
+    if (!wifiSsid) {
+        showNotification('Please enter your WiFi SSID', 'error');
         return;
     }
     
-    // Default to HA instance location if not specified
-    let location;
-    if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
-        location = { x: lon, y: lat };
-    } else if (config.map_latitude && config.map_longitude) {
-        location = { x: config.map_longitude, y: config.map_latitude };
-    } else {
-        location = { x: 0, y: 0 };
+    if (!wifiPassword) {
+        showNotification('Please enter your WiFi password', 'error');
+        return;
     }
     
     const controllerData = {
-        name,
-        ip: ip || null,
-        mac: null,
+        name: name || null,  // Auto-generate if empty
+        wifi_ssid: wifiSsid,
+        wifi_password: wifiPassword,
         generate_esphome: true,  // Generate config for new controller
-        location
+        location: null  // Will be set later
     };
     
     try {
@@ -705,14 +699,14 @@ async function saveControllerAndBuild() {
         
         if (response.ok) {
             const result = await response.json();
-            showNotification('✅ Controller created and config generated!', 'success');
+            showNotification(`✅ Controller "${result.name}" created and config generated!`, 'success');
             document.querySelector('.modal').remove();
             await loadControllers();
             
             // Automatically start building firmware
             if (result.esphome_path) {
                 showNotification('🔨 Starting firmware build... This will take 5-10 minutes.', 'info');
-                await buildFirmware(name);
+                await buildFirmware(result.name);
             }
         } else {
             const error = await response.json();

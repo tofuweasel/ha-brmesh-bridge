@@ -26,6 +26,37 @@ class WebUI:
         self.bridge = bridge
         self.setup_routes()
     
+    def _update_ha_secrets(self, wifi_ssid, wifi_password):
+        """Update Home Assistant's secrets.yaml with WiFi credentials"""
+        import yaml
+        
+        secrets_path = '/config/secrets.yaml'
+        secrets = {}
+        
+        # Load existing secrets if file exists
+        if os.path.exists(secrets_path):
+            try:
+                with open(secrets_path, 'r') as f:
+                    secrets = yaml.safe_load(f) or {}
+            except Exception as e:
+                logger.warning(f"Could not read existing secrets.yaml: {e}")
+        
+        # Update WiFi credentials
+        secrets['wifi_ssid'] = wifi_ssid
+        secrets['wifi_password'] = wifi_password
+        
+        # Add other common secrets if they don't exist
+        if 'gateway' not in secrets:
+            secrets['gateway'] = '192.168.1.1'
+        if 'subnet' not in secrets:
+            secrets['subnet'] = '255.255.255.0'
+        
+        # Save back to file
+        with open(secrets_path, 'w') as f:
+            yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+        
+        logger.info(f"✅ Updated secrets.yaml with WiFi SSID: {wifi_ssid}")
+    
     def setup_routes(self):
         """Setup Flask routes"""
         
@@ -212,9 +243,40 @@ class WebUI:
                 controller_data = request.json
                 logger.info(f"📡 Received controller data: {controller_data}")
                 
+                # Auto-generate name if not provided
+                if not controller_data.get('name'):
+                    existing_controllers = self.bridge.config.get('controllers', [])
+                    base_name = 'brmesh_bridge'
+                    
+                    # Check if base name exists
+                    existing_names = [c.get('name', '').lower() for c in existing_controllers]
+                    if base_name not in existing_names:
+                        controller_data['name'] = base_name
+                    else:
+                        # Find next available number
+                        counter = 1
+                        while f"{base_name}_{counter}" in existing_names:
+                            counter += 1
+                        controller_data['name'] = f"{base_name}_{counter}"
+                    
+                    logger.info(f"🏷️  Auto-generated controller name: {controller_data['name']}")
+                
                 # Generate unique ID
                 controller_id = len(self.bridge.config.get('controllers', [])) + 1
                 controller_data['id'] = controller_id
+                
+                # Handle WiFi secrets for new controllers
+                if controller_data.get('generate_esphome') and controller_data.get('wifi_ssid'):
+                    wifi_ssid = controller_data.pop('wifi_ssid')
+                    wifi_password = controller_data.pop('wifi_password')
+                    
+                    # Update Home Assistant's secrets.yaml
+                    try:
+                        self._update_ha_secrets(wifi_ssid, wifi_password)
+                        logger.info(f"🔐 Updated WiFi credentials in /config/secrets.yaml")
+                    except Exception as e:
+                        logger.error(f"Failed to update secrets: {e}")
+                        return jsonify({'error': f'Failed to save WiFi credentials: {e}'}), 500
                 
                 # Add to config
                 self.bridge.config.setdefault('controllers', []).append(controller_data)
@@ -240,8 +302,13 @@ class WebUI:
                     except Exception as e:
                         logger.error(f"Failed to write ESPHome config: {e}")
                 
-                logger.info(f"✅ Controller added successfully with ID: {controller_id}")
-                return jsonify({'success': True, 'id': controller_id, 'esphome_path': esphome_path})
+                logger.info(f"✅ Controller '{controller_data['name']}' added successfully with ID: {controller_id}")
+                return jsonify({
+                    'success': True, 
+                    'id': controller_id, 
+                    'name': controller_data['name'],
+                    'esphome_path': esphome_path
+                })
             except Exception as e:
                 logger.error(f"❌ Error adding controller: {str(e)}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
