@@ -52,7 +52,8 @@ RUN pip3 install --break-system-packages --no-cache-dir \
 ENV PLATFORMIO_CORE_DIR=/config/.platformio
 ENV PLATFORMIO_GLOBALLIB_DIR=/config/.platformio/lib
 ENV PIO_INSTALL_DEVPLATFORM_SILENT=yes
-ENV PLATFORMIO_SYSTEM_SITE_PACKAGES=yes
+# Disable PlatformIO's virtual environment creation entirely
+ENV PLATFORMIO_PENV_DISABLE=1
 
 # Copy addon files
 COPY rootfs /
