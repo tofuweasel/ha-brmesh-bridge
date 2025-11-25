@@ -196,10 +196,15 @@ class ESPHomeConfigGenerator:
                     updated = True
                 else:
                     logger.info(f"✅ API encryption key is valid (length: {len(api_key)})")
+                    logger.info(f"🔍 Key type: {type(api_key).__name__}")
+                    logger.info(f"🔍 Key repr: {repr(api_key)}")
                     # Ensure existing valid key is also plain scalar (no quotes)
                     if not isinstance(api_key, PlainScalarString):
+                        logger.info(f"🔄 Converting key to PlainScalarString")
                         secrets['api_encryption_key'] = PlainScalarString(str(api_key))
                         updated = True
+                    else:
+                        logger.info(f"✅ Key is already PlainScalarString")
                 
                 # Generate or replace invalid OTA password
                 ota_pass = secrets.get('ota_password', '')

@@ -282,7 +282,7 @@ class WebUI:
                 # Auto-generate name if not provided
                 if not controller_data.get('name'):
                     existing_controllers = self.bridge.config.get('controllers', [])
-                    base_name = 'brmesh_bridge'
+                    base_name = 'brmesh-bridge'
                     
                     # Check if base name exists
                     existing_names = [c.get('name', '').lower() for c in existing_controllers]
@@ -291,9 +291,9 @@ class WebUI:
                     else:
                         # Find next available number
                         counter = 1
-                        while f"{base_name}_{counter}" in existing_names:
+                        while f"{base_name}-{counter}" in existing_names:
                             counter += 1
-                        controller_data['name'] = f"{base_name}_{counter}"
+                        controller_data['name'] = f"{base_name}-{counter}"
                     
                     logger.info(f"🏷️  Auto-generated controller name: {controller_data['name']}")
                 
@@ -962,6 +962,36 @@ class WebUI:
                     'api_key_raw_line': api_key_line,
                     'ota_password': ota_pass[:10] + '...' if len(ota_pass) > 10 else ota_pass,
                     'total_secrets': len(secrets)
+                })
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/diagnostics/secrets-raw')
+        def get_secrets_raw():
+            """Get raw secrets.yaml content to debug formatting issues"""
+            try:
+                secrets_path = '/config/secrets.yaml'
+                
+                if not os.path.exists(secrets_path):
+                    return jsonify({'error': 'secrets.yaml not found'}), 404
+                
+                with open(secrets_path, 'r') as f:
+                    content = f.read()
+                
+                # Return relevant lines around api_encryption_key
+                lines = content.split('\n')
+                result_lines = []
+                for i, line in enumerate(lines):
+                    if 'api_encryption_key' in line or 'ota_password' in line or 'wifi_ssid' in line or 'wifi_password' in line:
+                        # Include context lines
+                        start = max(0, i - 1)
+                        end = min(len(lines), i + 2)
+                        result_lines.extend(lines[start:end])
+                
+                return jsonify({
+                    'relevant_lines': '\n'.join(result_lines),
+                    'file_size': len(content),
+                    'total_lines': len(lines)
                 })
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
