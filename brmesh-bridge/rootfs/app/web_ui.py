@@ -71,7 +71,11 @@ class WebUI:
         with open(secrets_path, 'w') as f:
             yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
         
+        # Log the encryption key to verify it wasn't corrupted
+        api_key = secrets.get('api_encryption_key', '')
         logger.info(f"✅ Updated secrets.yaml with WiFi SSID: {wifi_ssid}")
+        if api_key:
+            logger.info(f"🔑 Preserved api_encryption_key: {api_key[:20]}... (length: {len(api_key)})")
     
     def setup_routes(self):
         """Setup Flask routes"""
@@ -890,6 +894,40 @@ class WebUI:
                     results['clone_test'] = f"Error: {str(e)}"
                 
                 return jsonify(results)
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/diagnostics/secrets-check', methods=['GET'])
+        def check_secrets():
+            """Check secrets.yaml for encryption key validity"""
+            try:
+                import yaml
+                secrets_path = '/config/secrets.yaml'
+                
+                if not os.path.exists(secrets_path):
+                    return jsonify({'error': 'secrets.yaml not found'}), 404
+                
+                with open(secrets_path, 'r') as f:
+                    content = f.read()
+                    secrets = yaml.safe_load(content)
+                
+                api_key = secrets.get('api_encryption_key', '')
+                ota_pass = secrets.get('ota_password', '')
+                
+                # Find the raw line in the file
+                api_key_line = ''
+                for line in content.split('\n'):
+                    if line.startswith('api_encryption_key:'):
+                        api_key_line = line
+                        break
+                
+                return jsonify({
+                    'api_key_value': api_key,
+                    'api_key_length': len(api_key),
+                    'api_key_raw_line': api_key_line,
+                    'ota_password': ota_pass[:10] + '...' if len(ota_pass) > 10 else ota_pass,
+                    'total_secrets': len(secrets)
+                })
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         

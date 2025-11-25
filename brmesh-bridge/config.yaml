@@ -1,5 +1,5 @@
 name: BRMesh Bridge
-version: 0.15.5
+version: 0.15.6
 slug: brmesh-bridge
 description: Advanced BRMesh light management with map view, effects, and multi-controller support
 url: https://github.com/tofuweasel/ha-brmesh-bridge
