@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('refresh-btn').addEventListener('click', refreshAll);
     document.getElementById('save-layout-btn').addEventListener('click', saveLayout);
     document.getElementById('create-scene-btn').addEventListener('click', createScene);
-    document.getElementById('add-controller-btn').addEventListener('click', addController);
+    document.getElementById('create-controller-btn').addEventListener('click', createController);
+    document.getElementById('add-controller-btn').addEventListener('click', addExistingController);
     document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
     
     // Auto-refresh every 5 seconds
@@ -518,16 +519,66 @@ function renderControllers() {
     });
 }
 
-function addController() {
-    // Create modal for adding controller
+function createController() {
+    // Create modal for building a new ESP32 from scratch
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'block';
     modal.innerHTML = `
         <div class="modal-content">
             <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
-            <h2>Add ESP32 Controller</h2>
-            <p>Configure an ESP32 device to act as a BRMesh controller for extended range and reliability.</p>
+            <h2>🔨 Create New ESP32 Controller</h2>
+            <p>Build and flash a new ESP32 controller from scratch. This will compile firmware and flash it to your device.</p>
+            
+            <div class="form-group">
+                <label for="controller-name">Controller Name:</label>
+                <input type="text" id="controller-name" placeholder="e.g., Front Yard, Backyard, Garage" />
+            </div>
+            
+            <div class="form-group">
+                <label for="controller-ip">Controller IP Address:</label>
+                <input type="text" id="controller-ip" placeholder="192.168.1.100" />
+                <small>This will be set in the WiFi configuration</small>
+            </div>
+            
+            <div class="form-group">
+                <h3>Location (for signal optimization)</h3>
+                <label for="controller-lat">Latitude:</label>
+                <input type="number" id="controller-lat" step="0.000001" placeholder="41.0199" value="${config.map_latitude || ''}" />
+                <label for="controller-lon">Longitude:</label>
+                <input type="number" id="controller-lon" step="0.000001" placeholder="-73.8286" value="${config.map_longitude || ''}" />
+                <small>Click on the map to set location automatically</small>
+            </div>
+            
+            <div class="info-box">
+                <strong>Next Steps:</strong>
+                <ol>
+                    <li>Click "Create & Build" to generate ESPHome config and compile firmware</li>
+                    <li>Connect your ESP32 via USB</li>
+                    <li>Use the "Flash" button to upload firmware</li>
+                    <li>Power on your ESP32 and it will appear in Home Assistant</li>
+                </ol>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-success" onclick="saveControllerAndBuild()">🔨 Create & Build Firmware</button>
+                <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function addExistingController() {
+    // Create modal for adding an already-configured ESP32
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>➕ Add Existing Controller</h2>
+            <p>Add an ESP32 controller that is already configured and running ESPHome firmware.</p>
             
             <div class="form-group">
                 <label for="controller-name">Controller Name:</label>
@@ -543,14 +594,6 @@ function addController() {
             <div class="form-group">
                 <label for="controller-mac">MAC Address (Optional):</label>
                 <input type="text" id="controller-mac" placeholder="AA:BB:CC:DD:EE:FF" />
-            </div>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="controller-generate-esphome" checked />
-                    Auto-generate ESPHome configuration
-                </label>
-                <small>Will create YAML config at /config/esphome/</small>
             </div>
             
             <div class="form-group">
@@ -575,7 +618,6 @@ async function saveController() {
     const name = document.getElementById('controller-name').value.trim();
     const ip = document.getElementById('controller-ip').value.trim();
     const mac = document.getElementById('controller-mac').value.trim();
-    const generateEsphome = document.getElementById('controller-generate-esphome').checked;
     const lat = parseFloat(document.getElementById('controller-lat').value);
     const lon = parseFloat(document.getElementById('controller-lon').value);
     
@@ -589,7 +631,6 @@ async function saveController() {
     if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
         location = { x: lon, y: lat };
     } else if (config.map_latitude && config.map_longitude) {
-        // Use Home Assistant's location as default
         location = { x: config.map_longitude, y: config.map_latitude };
     } else {
         location = { x: 0, y: 0 };
@@ -599,7 +640,7 @@ async function saveController() {
         name,
         ip: ip || null,
         mac: mac || null,
-        generate_esphome: generateEsphome,
+        generate_esphome: false,  // Existing controller, no config generation
         location
     };
     
@@ -611,13 +652,7 @@ async function saveController() {
         });
         
         if (response.ok) {
-            const result = await response.json();
             showNotification('Controller added successfully!', 'success');
-            if (generateEsphome && result.esphome_path) {
-                showNotification(`✅ ESPHome config generated! Open ESPHome Dashboard and look for ${result.esphome_path.split('/').pop()}`, 'success');
-            } else if (generateEsphome) {
-                showNotification('⚠️ ESPHome config generation failed. Check logs.', 'error');
-            }
             document.querySelector('.modal').remove();
             await loadControllers();
         } else {
@@ -627,6 +662,65 @@ async function saveController() {
     } catch (error) {
         console.error('Failed to add controller:', error);
         showNotification('Failed to add controller: ' + error.message, 'error');
+    }
+}
+
+async function saveControllerAndBuild() {
+    const name = document.getElementById('controller-name').value.trim();
+    const ip = document.getElementById('controller-ip').value.trim();
+    const lat = parseFloat(document.getElementById('controller-lat').value);
+    const lon = parseFloat(document.getElementById('controller-lon').value);
+    
+    if (!name) {
+        showNotification('Please enter a controller name', 'error');
+        return;
+    }
+    
+    // Default to HA instance location if not specified
+    let location;
+    if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+        location = { x: lon, y: lat };
+    } else if (config.map_latitude && config.map_longitude) {
+        location = { x: config.map_longitude, y: config.map_latitude };
+    } else {
+        location = { x: 0, y: 0 };
+    }
+    
+    const controllerData = {
+        name,
+        ip: ip || null,
+        mac: null,
+        generate_esphome: true,  // Generate config for new controller
+        location
+    };
+    
+    try {
+        showNotification('🔨 Creating controller and generating configuration...', 'info');
+        
+        const response = await fetch('api/controllers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(controllerData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification('✅ Controller created and config generated!', 'success');
+            document.querySelector('.modal').remove();
+            await loadControllers();
+            
+            // Automatically start building firmware
+            if (result.esphome_path) {
+                showNotification('🔨 Starting firmware build... This will take 5-10 minutes.', 'info');
+                await buildFirmware(name);
+            }
+        } else {
+            const error = await response.json();
+            showNotification('Failed to create controller: ' + (error.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Failed to create controller:', error);
+        showNotification('Failed to create controller: ' + error.message, 'error');
     }
 }
 
