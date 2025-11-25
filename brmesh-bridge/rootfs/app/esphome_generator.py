@@ -161,12 +161,16 @@ class ESPHomeConfigGenerator:
                 
                 updated = False
                 # Generate or replace invalid API encryption key
-                if 'api_encryption_key' not in secrets or secrets['api_encryption_key'] == 'generate_with_esphome':
+                api_key = secrets.get('api_encryption_key', '')
+                if not api_key or not self._is_valid_base64_key(api_key):
+                    logger.info(f"🔑 Regenerating invalid api_encryption_key (was: {api_key[:20] if api_key else 'missing'}...)")
                     secrets['api_encryption_key'] = self._generate_random_key()
                     updated = True
                 
                 # Generate or replace invalid OTA password
-                if 'ota_password' not in secrets or secrets['ota_password'] == 'your_ota_password':
+                ota_pass = secrets.get('ota_password', '')
+                if not ota_pass or ota_pass == 'your_ota_password' or len(ota_pass) < 8:
+                    logger.info(f"🔑 Regenerating invalid ota_password")
                     secrets['ota_password'] = self._generate_random_password()
                     updated = True
                 
@@ -176,6 +180,20 @@ class ESPHomeConfigGenerator:
                     logger.info(f"✅ Updated /config/secrets.yaml with missing keys")
             except Exception as e:
                 logger.error(f"Failed to update secrets: {e}")
+    
+    def _is_valid_base64_key(self, key: str) -> bool:
+        """Check if a string is valid base64 and appropriate length for encryption"""
+        import base64
+        try:
+            # Must be at least 32 characters (24 bytes base64 encoded)
+            if len(key) < 32:
+                return False
+            # Try to decode as base64
+            decoded = base64.b64decode(key, validate=True)
+            # Should be at least 16 bytes for a valid encryption key
+            return len(decoded) >= 16
+        except Exception:
+            return False
     
     def _generate_random_key(self) -> str:
         """Generate a random 32-byte base64 key for API encryption"""
