@@ -43,6 +43,8 @@ class ESPHomeBuilder:
             env = {
                 **os.environ,
                 'PLATFORMIO_CORE_DIR': '/config/.platformio',
+                'PLATFORMIO_NO_SYSTEM_SITEPACKAGES': 'false',
+                'PIO_INSTALL_DEVPLATFORM_SILENT': 'yes',
                 'GIT_HTTP_LOW_SPEED_LIMIT': '0',
                 'GIT_HTTP_LOW_SPEED_TIME': '999999',
                 'GIT_CURL_VERBOSE': '1',

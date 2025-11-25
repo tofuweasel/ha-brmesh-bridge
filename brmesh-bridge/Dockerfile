@@ -48,6 +48,15 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "numpy>=2.0.0,<3.0.0" \
     "ruamel.yaml>=0.17.0,<1.0.0"
 
+# Pre-configure PlatformIO to use system Python and avoid creating venv
+ENV PLATFORMIO_CORE_DIR=/config/.platformio
+ENV PLATFORMIO_GLOBALLIB_DIR=/config/.platformio/lib
+ENV PIO_INSTALL_DEVPLATFORM_SILENT=yes
+ENV PLATFORMIO_NO_SYSTEM_SITEPACKAGES=false
+
+# Initialize PlatformIO to cache platform files
+RUN pio platform install espressif32@5.3.0 || true
+
 # Copy addon files
 COPY rootfs /
 
