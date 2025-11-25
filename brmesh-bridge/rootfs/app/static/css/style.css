@@ -686,3 +686,43 @@ body.dark-mode #dark-mode-toggle {
 body.dark-mode #dark-mode-toggle:hover {
     background: #e67e22;
 }
+/* Scene and Controller creation modals */
+.scene-light-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+
+body.dark-mode .scene-light-item {
+    background: #3a4658;
+}
+
+.scene-light-item label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scene-light-color {
+    width: 50px;
+    height: 35px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+body.dark-mode .scene-light-color {
+    border-color: #3a4658;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}

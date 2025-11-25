@@ -378,7 +378,113 @@ async function applyScene(sceneName) {
 }
 
 function createScene() {
-    alert('Scene creation UI coming soon!');
+    // Create modal for scene creation
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>Create New Scene</h2>
+            <div class="form-group">
+                <label for="scene-name">Scene Name:</label>
+                <input type="text" id="scene-name" placeholder="e.g., Christmas, Movie Night, Party Mode" />
+            </div>
+            <div class="form-group">
+                <label>Scene Type:</label>
+                <select id="scene-type">
+                    <option value="static">Static Colors</option>
+                    <option value="effect">Effect Pattern</option>
+                </select>
+            </div>
+            <div id="scene-static-config" class="form-group">
+                <h3>Select Lights & Colors</h3>
+                <div id="scene-lights-list"></div>
+            </div>
+            <div id="scene-effect-config" class="form-group" style="display: none;">
+                <label for="scene-effect">Effect:</label>
+                <select id="scene-effect">
+                    <option value="rainbow">Rainbow</option>
+                    <option value="chase">Chase</option>
+                    <option value="twinkle">Twinkle</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="fade">Fade</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="saveScene()">💾 Save Scene</button>
+                <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Populate lights list
+    const lightsList = document.getElementById('scene-lights-list');
+    lights.forEach(light => {
+        const lightDiv = document.createElement('div');
+        lightDiv.className = 'scene-light-item';
+        const currentColor = light.state.rgb || [255, 255, 255];
+        const colorHex = rgbToHex(currentColor[0], currentColor[1], currentColor[2]);
+        
+        lightDiv.innerHTML = `
+            <label>
+                <input type="checkbox" class="scene-light-checkbox" data-light-id="${light.id}" checked />
+                ${light.name}
+            </label>
+            <input type="color" class="scene-light-color" data-light-id="${light.id}" value="${colorHex}" />
+        `;
+        lightsList.appendChild(lightDiv);
+    });
+    
+    // Handle scene type change
+    document.getElementById('scene-type').addEventListener('change', (e) => {
+        const isEffect = e.target.value === 'effect';
+        document.getElementById('scene-static-config').style.display = isEffect ? 'none' : 'block';
+        document.getElementById('scene-effect-config').style.display = isEffect ? 'block' : 'none';
+    });
+}
+
+async function saveScene() {
+    const name = document.getElementById('scene-name').value.trim();
+    if (!name) {
+        showNotification('Please enter a scene name', 'error');
+        return;
+    }
+    
+    const sceneType = document.getElementById('scene-type').value;
+    const sceneData = { name, type: sceneType };
+    
+    if (sceneType === 'static') {
+        sceneData.lights = [];
+        document.querySelectorAll('.scene-light-checkbox:checked').forEach(checkbox => {
+            const lightId = parseInt(checkbox.dataset.lightId);
+            const colorInput = document.querySelector(`.scene-light-color[data-light-id="${lightId}"]`);
+            const color = hexToRgb(colorInput.value);
+            sceneData.lights.push({ id: lightId, rgb: color, brightness: 255 });
+        });
+    } else {
+        sceneData.effect = document.getElementById('scene-effect').value;
+    }
+    
+    try {
+        const response = await fetch('api/scenes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sceneData)
+        });
+        
+        if (response.ok) {
+            showNotification('Scene created successfully!', 'success');
+            document.querySelector('.modal').remove();
+            await loadScenes();
+        } else {
+            showNotification('Failed to create scene', 'error');
+        }
+    } catch (error) {
+        console.error('Failed to create scene:', error);
+        showNotification('Failed to create scene: ' + error.message, 'error');
+    }
 }
 
 // Controllers Management
@@ -407,7 +513,102 @@ function renderControllers() {
 }
 
 function addController() {
-    alert('Add controller UI coming soon!');
+    // Create modal for adding controller
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>Add ESP32 Controller</h2>
+            <p>Configure an ESP32 device to act as a BRMesh controller for extended range and reliability.</p>
+            
+            <div class="form-group">
+                <label for="controller-name">Controller Name:</label>
+                <input type="text" id="controller-name" placeholder="e.g., Front Yard, Backyard, Garage" />
+            </div>
+            
+            <div class="form-group">
+                <label for="controller-ip">Controller IP Address:</label>
+                <input type="text" id="controller-ip" placeholder="192.168.1.100" />
+                <small>Leave blank for auto-discovery</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="controller-mac">MAC Address (Optional):</label>
+                <input type="text" id="controller-mac" placeholder="AA:BB:CC:DD:EE:FF" />
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="controller-generate-esphome" checked />
+                    Auto-generate ESPHome configuration
+                </label>
+                <small>Will create YAML config at /config/esphome/</small>
+            </div>
+            
+            <div class="form-group">
+                <h3>Location (for signal optimization)</h3>
+                <label for="controller-lat">Latitude:</label>
+                <input type="number" id="controller-lat" step="0.000001" placeholder="41.0199" />
+                <label for="controller-lon">Longitude:</label>
+                <input type="number" id="controller-lon" step="0.000001" placeholder="-73.8286" />
+                <small>Click on the map to set location automatically</small>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="saveController()">💾 Add Controller</button>
+                <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function saveController() {
+    const name = document.getElementById('controller-name').value.trim();
+    const ip = document.getElementById('controller-ip').value.trim();
+    const mac = document.getElementById('controller-mac').value.trim();
+    const generateEsphome = document.getElementById('controller-generate-esphome').checked;
+    const lat = parseFloat(document.getElementById('controller-lat').value) || null;
+    const lon = parseFloat(document.getElementById('controller-lon').value) || null;
+    
+    if (!name) {
+        showNotification('Please enter a controller name', 'error');
+        return;
+    }
+    
+    const controllerData = {
+        name,
+        ip: ip || null,
+        mac: mac || null,
+        generate_esphome: generateEsphome,
+        location: lat && lon ? { x: lon, y: lat } : null
+    };
+    
+    try {
+        const response = await fetch('api/controllers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(controllerData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification('Controller added successfully!', 'success');
+            if (generateEsphome && result.esphome_path) {
+                showNotification(`ESPHome config generated at ${result.esphome_path}`, 'info');
+            }
+            document.querySelector('.modal').remove();
+            await loadControllers();
+        } else {
+            const error = await response.json();
+            showNotification('Failed to add controller: ' + (error.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Failed to add controller:', error);
+        showNotification('Failed to add controller: ' + error.message, 'error');
+    }
 }
 
 // Map Functions
