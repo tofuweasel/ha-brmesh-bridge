@@ -4,7 +4,7 @@ FROM ${BUILD_FROM}
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install requirements
+# Install system requirements
 RUN apk add --no-cache \
     python3 \
     py3-pip \
@@ -12,9 +12,11 @@ RUN apk add --no-cache \
     bluez-deprecated \
     gcc \
     g++ \
+    musl-dev \
+    linux-headers \
     git \
     make \
-    platformio
+    python3-dev
 
 # Install Python packages (latest stable versions)
 RUN pip3 install --break-system-packages --no-cache-dir \
@@ -26,7 +28,8 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "requests>=2.32.0,<3.0.0" \
     "pillow>=10.0.0,<12.0.0" \
     "numpy>=2.0.0,<3.0.0" \
-    "esphome>=2024.0.0"
+    "esphome>=2024.11.0" \
+    "platformio>=6.1.0"
 
 # Copy addon files
 COPY rootfs /
