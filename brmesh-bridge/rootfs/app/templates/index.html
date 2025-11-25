@@ -24,16 +24,16 @@
         </header>
 
         <div class="tabs">
-            <button class="tab-btn active" data-tab="map">🗺️ Map View</button>
-            <button class="tab-btn" data-tab="lights">💡 Lights</button>
+            <button class="tab-btn active" data-tab="lights">💡 Lights</button>
+            <button class="tab-btn" data-tab="controllers">📡 Controllers</button>
             <button class="tab-btn" data-tab="effects">✨ Effects</button>
             <button class="tab-btn" data-tab="scenes">🎬 Scenes</button>
-            <button class="tab-btn" data-tab="controllers">📡 Controllers</button>
+            <button class="tab-btn" data-tab="map">🗺️ Map View</button>
             <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
         </div>
 
         <!-- Map View Tab -->
-        <div id="map-tab" class="tab-content active">
+        <div id="map-tab" class="tab-content">
             <div class="map-container">
                 <div id="map"></div>
                 <div class="map-controls">
@@ -61,7 +61,7 @@
         </div>
 
         <!-- Lights Tab -->
-        <div id="lights-tab" class="tab-content">
+        <div id="lights-tab" class="tab-content active">
             <div class="lights-grid" id="lights-grid">
                 <!-- Populated by JavaScript -->
             </div>

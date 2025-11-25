@@ -14,6 +14,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupModals();
     setupDarkMode();
     await loadConfig();
+    
+    // Check if mesh key is configured, if not, default to settings tab
+    if (!config.mesh_key || config.mesh_key.trim() === '') {
+        // Switch to settings tab
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.tab-btn[data-tab="settings"]').classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById('settings-tab').classList.add('active');
+        loadSettings();
+        loadWiFiNetworks();
+        showNotification('⚠️ Please configure your mesh key in Settings to get started', 'warning');
+    }
+    
     await loadLights();
     await loadControllers();
     await loadEffects();
