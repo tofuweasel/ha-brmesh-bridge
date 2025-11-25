@@ -257,8 +257,11 @@ class WebUI:
         def scan_for_lights():
             """Scan BRMesh network for new lights"""
             try:
+                logger.info("🔍 Scan request received")
+                
                 # Run BLE discovery if available
                 if self.bridge.ble_discovery:
+                    logger.info("📡 Starting BLE discovery (30 second scan)...")
                     import asyncio
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
@@ -266,10 +269,13 @@ class WebUI:
                         self.bridge.ble_discovery.auto_discover_and_register(duration=30)
                     )
                     loop.close()
+                    logger.info(f"✅ Scan complete. Found {len(new_lights)} new lights: {new_lights}")
                     return jsonify({'lights': new_lights, 'count': len(new_lights)})
                 else:
-                    return jsonify({'error': 'BLE discovery not enabled'}), 400
+                    logger.warning("⚠️ BLE discovery not enabled in bridge")
+                    return jsonify({'error': 'BLE discovery not enabled. Check bluetooth permissions and enable_ble_discovery setting.'}), 400
             except Exception as e:
+                logger.error(f"❌ Scan error: {str(e)}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/import/app', methods=['POST'])

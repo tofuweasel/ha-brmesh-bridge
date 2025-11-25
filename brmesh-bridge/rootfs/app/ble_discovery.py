@@ -218,22 +218,29 @@ class BRMeshDiscovery:
         2. Filter out already registered
         3. Register new ones
         """
+        logger.info(f"🔍 Starting auto-discovery (scanning for {duration}s)...")
         discovered = await self.scan_for_devices(duration)
+        logger.info(f"📡 Discovery found {len(discovered)} potential BRMesh devices")
         registered_ids = []
         
         for device in discovered:
             device_id = device.get('device_id')
+            logger.info(f"Processing device: ID={device_id}, MAC={device['mac_address']}, Name={device['name']}")
             
             if not device_id:
                 # Try pairing mode
-                logger.info(f"Attempting to pair with {device['mac_address']}")
+                logger.info(f"🔗 No device ID found, attempting to pair with {device['mac_address']}")
                 device_id = await self.enter_pairing_mode(device['mac_address'])
             
             if device_id and device_id not in self.bridge.lights:
+                logger.info(f"➕ Registering new device ID {device_id}")
                 success = await self.register_device(device_id, device['name'])
                 if success:
                     registered_ids.append(device_id)
+            elif device_id:
+                logger.info(f"⏭️ Device ID {device_id} already registered, skipping")
         
+        logger.info(f"✅ Registration complete. Added {len(registered_ids)} new lights: {registered_ids}")
         return registered_ids
     
     async def query_light_state(self, device_id: int) -> Optional[Dict]:
