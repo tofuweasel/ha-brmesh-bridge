@@ -316,6 +316,9 @@ class WebUI:
                 # Generate ESPHome config if requested
                 esphome_path = None
                 if controller_data.get('generate_esphome') and self.bridge.esphome_generator:
+                    # Ensure secrets.yaml has valid encryption keys before generating config
+                    self.bridge.esphome_generator.save_secrets_template()
+                    
                     # All controllers get all lights in a mesh network
                     yaml_config = self.bridge.esphome_generator.generate_controller_config(controller_data)
                     
