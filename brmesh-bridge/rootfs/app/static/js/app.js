@@ -1347,11 +1347,6 @@ async function downloadESPHomeConfig(controllerName) {
     } catch (error) {
         console.error('Download error:', error);
         showNotification(`Failed to download config: ${error.message}`, 'error');
-        }
-    }
-}
-
-async function flashFirmware(controllerName, eventOrButton = null) {
     }
 }
 
