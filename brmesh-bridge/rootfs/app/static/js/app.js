@@ -546,9 +546,7 @@ function renderControllers() {
                 <div>Location: (${controller.location?.x || 0}, ${controller.location?.y || 0})</div>
             </div>
             <div class="controller-actions">
-                <button class="btn btn-primary" onclick="buildFirmware('${controllerName}')">🔨 Build</button>
-                <button class="btn btn-success" onclick="flashFirmware('${controllerName}')">⚡ Flash</button>
-                <button class="btn btn-secondary" onclick="buildAndFlash('${controllerName}')">🚀 Build & Flash</button>
+                <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download Config</button>
             </div>
         `;
         
@@ -624,7 +622,7 @@ async function createController() {
             </div>
             
             <div class="modal-buttons">
-                <button class="btn btn-success" onclick="saveControllerAndBuild()">🔨 Create & Build Firmware</button>
+                <button class="btn btn-success" onclick="saveController()">📝 Generate ESPHome Config</button>
                 <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
             </div>
         </div>
@@ -736,76 +734,6 @@ async function saveController() {
     } catch (error) {
         console.error('Failed to add controller:', error);
         showNotification('Failed to add controller: ' + error.message, 'error');
-    }
-}
-
-async function saveControllerAndBuild() {
-    const networkSelector = document.getElementById('wifi-network-selector');
-    const selectedNetwork = networkSelector.value;
-    const name = document.getElementById('controller-name').value.trim();
-    
-    let wifiSsid, wifiPassword, networkId;
-    
-    if (selectedNetwork === 'new') {
-        // Using manual WiFi credentials
-        wifiSsid = document.getElementById('wifi-ssid')?.value.trim();
-        wifiPassword = document.getElementById('wifi-password')?.value.trim();
-        
-        // Validate WiFi credentials
-        if (!wifiSsid) {
-            showNotification('Please enter your WiFi SSID', 'error');
-            return;
-        }
-        
-        if (!wifiPassword) {
-            showNotification('Please enter your WiFi password', 'error');
-            return;
-        }
-        
-        networkId = null;
-    } else {
-        // Using pre-configured network
-        networkId = parseInt(selectedNetwork);
-        wifiSsid = null;
-        wifiPassword = null;
-    }
-    
-    const controllerData = {
-        name: name || null,  // Auto-generate if empty
-        wifi_ssid: wifiSsid,
-        wifi_password: wifiPassword,
-        network_id: networkId,
-        generate_esphome: true,  // Generate config for new controller
-        location: null  // Will be set later
-    };
-    
-    try {
-        showNotification('🔨 Creating controller and generating configuration...', 'info');
-        
-        const response = await fetch('api/controllers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(controllerData)
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            showNotification(`✅ Controller "${result.name}" created and config generated!`, 'success');
-            document.querySelector('.modal').remove();
-            await loadControllers();
-            
-            // Automatically start building firmware
-            if (result.esphome_path) {
-                showNotification('🔨 Starting firmware build... This will take 5-10 minutes.', 'info');
-                await buildFirmware(result.name);
-            }
-        } else {
-            const error = await response.json();
-            showNotification('Failed to create controller: ' + (error.error || 'Unknown error'), 'error');
-        }
-    } catch (error) {
-        console.error('Failed to create controller:', error);
-        showNotification('Failed to create controller: ' + error.message, 'error');
     }
 }
 
@@ -1394,38 +1322,36 @@ function showNotification(message, type = 'info') {
 }
 
 // ESP32 Build & Flash Functions
-async function buildFirmware(controllerName, eventOrButton = null) {
-    // Handle both event-based (button click) and programmatic calls
-    const buildBtn = eventOrButton?.target || eventOrButton;
-    const originalText = buildBtn?.textContent;
-    
+async function downloadESPHomeConfig(controllerName) {
     try {
-        if (buildBtn) {
-            buildBtn.disabled = true;
-            buildBtn.textContent = '🔨 Building...';
+        const response = await fetch(`api/esphome/download/${controllerName}`);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            showNotification(`Failed to download config: ${error.error}`, 'error');
+            return;
         }
-        showNotification(`Building firmware for ${controllerName}... This may take 5-10 minutes.`, 'info');
         
-        const response = await fetch(`api/esphome/build/${controllerName}`, {
-            method: 'POST'
-        });
+        // Trigger browser download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${controllerName}.yaml`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
         
-        const result = await response.json();
-        
-        if (result.success) {
-            showNotification(`✅ Firmware built successfully! Ready to flash.`, 'success');
-        } else {
-            showNotification(`❌ Build failed: ${result.error}`, 'error');
-            console.error('Build output:', result.output);
-        }
+        showNotification(`✅ ESPHome config downloaded: ${controllerName}.yaml\n\n📋 To build and flash:\n1. Open terminal in the download folder\n2. Run: esphome run ${controllerName}.yaml\n3. Follow prompts to flash via USB or OTA`, 'success', 10000);
     } catch (error) {
-        console.error('Build error:', error);
-        showNotification(`❌ Build failed: ${error.message}`, 'error');
-    } finally {
-        if (buildBtn) {
-            buildBtn.disabled = false;
-            buildBtn.textContent = originalText;
+        console.error('Download error:', error);
+        showNotification(`Failed to download config: ${error.message}`, 'error');
         }
+    }
+}
+
+async function flashFirmware(controllerName, eventOrButton = null) {
     }
 }
 
