@@ -711,7 +711,7 @@ class WebUI:
         
         @app.route('/api/wifi-networks/<int:network_id>', methods=['DELETE'])
         def delete_wifi_network(network_id):
-            """Delete a WiFi network"""
+            """Delete a WiFi network and reindex remaining networks"""
             try:
                 import yaml
                 secrets_path = '/config/secrets.yaml'
@@ -722,21 +722,39 @@ class WebUI:
                 with open(secrets_path, 'r') as f:
                     secrets = yaml.safe_load(f) or {}
                 
-                # Remove the network
+                # Check if network exists
                 ssid_key = f'wifi_network_{network_id}_ssid'
                 pass_key = f'wifi_network_{network_id}_password'
                 
                 if ssid_key not in secrets:
                     return jsonify({'error': 'Network not found'}), 404
                 
-                ssid = secrets.pop(ssid_key)
-                secrets.pop(pass_key, None)
+                ssid = secrets[ssid_key]
+                
+                # Collect all existing networks
+                networks = []
+                i = 0
+                while f'wifi_network_{i}_ssid' in secrets:
+                    if i != network_id:  # Skip the one being deleted
+                        networks.append({
+                            'ssid': secrets[f'wifi_network_{i}_ssid'],
+                            'password': secrets[f'wifi_network_{i}_password']
+                        })
+                    # Remove old keys
+                    secrets.pop(f'wifi_network_{i}_ssid', None)
+                    secrets.pop(f'wifi_network_{i}_password', None)
+                    i += 1
+                
+                # Re-add networks with sequential IDs starting from 0
+                for idx, network in enumerate(networks):
+                    secrets[f'wifi_network_{idx}_ssid'] = network['ssid']
+                    secrets[f'wifi_network_{idx}_password'] = network['password']
                 
                 # Save
                 with open(secrets_path, 'w') as f:
                     yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
                 
-                logger.info(f"🗑️  Deleted WiFi network: {ssid}")
+                logger.info(f"🗑️  Deleted WiFi network: {ssid} (reindexed {len(networks)} remaining networks)")
                 return jsonify({'success': True})
             except Exception as e:
                 logger.error(f"Failed to delete WiFi network: {e}")
