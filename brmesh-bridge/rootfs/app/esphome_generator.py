@@ -56,9 +56,10 @@ class ESPHomeConfigGenerator:
                     'key': '!secret api_encryption_key'
                 }
             },
-            'ota': {
+            'ota': [{
+                'platform': 'esphome',
                 'password': '!secret ota_password'
-            },
+            }],
             'logger': {
                 'level': 'INFO'
             },

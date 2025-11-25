@@ -739,6 +739,10 @@ class WebUI:
         def delete_wifi_network(network_id):
             """Delete a WiFi network and reindex remaining networks"""
             try:
+                # Prevent deletion of legacy network ID
+                if network_id < 0:
+                    return jsonify({'error': 'Cannot delete legacy WiFi network. This is a read-only entry from wifi_ssid/wifi_password.'}), 400
+                
                 import yaml
                 secrets_path = '/config/secrets.yaml'
                 
