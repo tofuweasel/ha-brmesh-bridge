@@ -525,14 +525,17 @@ async function createController() {
     let wifiNetworks = [];
     try {
         const response = await fetch('api/wifi-networks');
-        wifiNetworks = await response.json();
+        const data = await response.json();
+        // Extract networks array from response
+        wifiNetworks = data.networks || [];
     } catch (error) {
         console.error('Failed to load WiFi networks:', error);
+        wifiNetworks = [];
     }
     
-    // Build network selector options
-    const networkOptions = wifiNetworks.map((net, idx) => 
-        `<option value="${idx}">📶 ${net.ssid}</option>`
+    // Build network selector options using the id from the network object
+    const networkOptions = wifiNetworks.map((net) => 
+        `<option value="${net.id}">📶 ${net.ssid}</option>`
     ).join('');
     
     // Create modal for building a new ESP32 from scratch
@@ -1050,7 +1053,8 @@ function toggleMapSettings() {
 async function loadWiFiNetworks() {
     try {
         const response = await fetch('api/wifi-networks');
-        const networks = await response.json();
+        const data = await response.json();
+        const networks = data.networks || [];
         
         const list = document.getElementById('wifi-networks-list');
         if (!networks || networks.length === 0) {
@@ -1058,14 +1062,14 @@ async function loadWiFiNetworks() {
             return;
         }
         
-        list.innerHTML = networks.map((net, idx) => `
+        list.innerHTML = networks.map((net) => `
             <div class="wifi-network-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px;">
                 <div>
                     <strong>📶 ${net.ssid}</strong>
                     <br>
-                    <small>Password: ${'*'.repeat(Math.min(net.password.length, 12))}</small>
+                    <small>Network ID: ${net.id}</small>
                 </div>
-                <button class="btn btn-danger btn-sm" onclick="deleteWiFiNetwork(${idx})">🗑️ Delete</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteWiFiNetwork(${net.id})">🗑️ Delete</button>
             </div>
         `).join('');
     } catch (error) {
