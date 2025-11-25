@@ -135,6 +135,15 @@
                 </div>
 
                 <div class="settings-section">
+                    <h3>WiFi Credentials</h3>
+                    <p><small>Pre-configure WiFi networks for quick ESP32 setup. These are saved securely in /config/secrets.yaml</small></p>
+                    <div id="wifi-networks-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <button class="btn btn-secondary" onclick="addWiFiNetworkDialog()">➕ Add WiFi Network</button>
+                </div>
+
+                <div class="settings-section">
                     <h3>MQTT Configuration</h3>
                     <div class="form-group">
                         <label>

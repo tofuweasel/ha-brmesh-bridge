@@ -58,6 +58,7 @@ function setupTabs() {
             // Load settings when settings tab is activated
             if (tab === 'settings') {
                 loadSettings();
+                loadWiFiNetworks();
             }
         });
     });
@@ -519,7 +520,21 @@ function renderControllers() {
     });
 }
 
-function createController() {
+async function createController() {
+    // Load WiFi networks first
+    let wifiNetworks = [];
+    try {
+        const response = await fetch('api/wifi-networks');
+        wifiNetworks = await response.json();
+    } catch (error) {
+        console.error('Failed to load WiFi networks:', error);
+    }
+    
+    // Build network selector options
+    const networkOptions = wifiNetworks.map((net, idx) => 
+        `<option value="${idx}">📶 ${net.ssid}</option>`
+    ).join('');
+    
     // Create modal for building a new ESP32 from scratch
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -531,14 +546,24 @@ function createController() {
             <p>Build and flash a new ESP32 controller. Just provide your WiFi credentials and we'll handle the rest!</p>
             
             <div class="form-group">
-                <label for="wifi-ssid">WiFi SSID: <span style="color: red;">*</span></label>
-                <input type="text" id="wifi-ssid" placeholder="Your WiFi Network Name" required />
+                <label for="wifi-network-selector">WiFi Network: <span style="color: red;">*</span></label>
+                <select id="wifi-network-selector" onchange="toggleWiFiInputs()">
+                    <option value="new">➕ Enter New Network</option>
+                    ${networkOptions}
+                </select>
             </div>
             
-            <div class="form-group">
-                <label for="wifi-password">WiFi Password: <span style="color: red;">*</span></label>
-                <input type="password" id="wifi-password" placeholder="Your WiFi Password" required />
-                <small>Stored securely in /config/secrets.yaml</small>
+            <div id="wifi-manual-inputs" ${networkOptions ? 'style="display:none;"' : ''}>
+                <div class="form-group">
+                    <label for="wifi-ssid">WiFi SSID: <span style="color: red;">*</span></label>
+                    <input type="text" id="wifi-ssid" placeholder="Your WiFi Network Name" required />
+                </div>
+                
+                <div class="form-group">
+                    <label for="wifi-password">WiFi Password: <span style="color: red;">*</span></label>
+                    <input type="password" id="wifi-password" placeholder="Your WiFi Password" required />
+                    <small>Stored securely in /config/secrets.yaml</small>
+                </div>
             </div>
             
             <div class="form-group">
@@ -566,6 +591,17 @@ function createController() {
         </div>
     `;
     document.body.appendChild(modal);
+    
+    // Show/hide manual inputs initially
+    toggleWiFiInputs();
+}
+
+function toggleWiFiInputs() {
+    const selector = document.getElementById('wifi-network-selector');
+    const manualInputs = document.getElementById('wifi-manual-inputs');
+    if (selector && manualInputs) {
+        manualInputs.style.display = selector.value === 'new' ? 'block' : 'none';
+    }
 }
 
 function addExistingController() {
@@ -665,25 +701,41 @@ async function saveController() {
 }
 
 async function saveControllerAndBuild() {
-    const wifiSsid = document.getElementById('wifi-ssid').value.trim();
-    const wifiPassword = document.getElementById('wifi-password').value.trim();
+    const networkSelector = document.getElementById('wifi-network-selector');
+    const selectedNetwork = networkSelector.value;
     const name = document.getElementById('controller-name').value.trim();
     
-    // Validate WiFi credentials
-    if (!wifiSsid) {
-        showNotification('Please enter your WiFi SSID', 'error');
-        return;
-    }
+    let wifiSsid, wifiPassword, networkId;
     
-    if (!wifiPassword) {
-        showNotification('Please enter your WiFi password', 'error');
-        return;
+    if (selectedNetwork === 'new') {
+        // Using manual WiFi credentials
+        wifiSsid = document.getElementById('wifi-ssid')?.value.trim();
+        wifiPassword = document.getElementById('wifi-password')?.value.trim();
+        
+        // Validate WiFi credentials
+        if (!wifiSsid) {
+            showNotification('Please enter your WiFi SSID', 'error');
+            return;
+        }
+        
+        if (!wifiPassword) {
+            showNotification('Please enter your WiFi password', 'error');
+            return;
+        }
+        
+        networkId = null;
+    } else {
+        // Using pre-configured network
+        networkId = parseInt(selectedNetwork);
+        wifiSsid = null;
+        wifiPassword = null;
     }
     
     const controllerData = {
         name: name || null,  // Auto-generate if empty
         wifi_ssid: wifiSsid,
         wifi_password: wifiPassword,
+        network_id: networkId,
         generate_esphome: true,  // Generate config for new controller
         location: null  // Will be set later
     };
@@ -992,6 +1044,114 @@ function toggleNSPanelSettings() {
 function toggleMapSettings() {
     const mapEnabled = document.getElementById('map-enabled').checked;
     document.getElementById('map-settings-fields').style.display = mapEnabled ? 'block' : 'none';
+}
+
+// WiFi Network Management
+async function loadWiFiNetworks() {
+    try {
+        const response = await fetch('api/wifi-networks');
+        const networks = await response.json();
+        
+        const list = document.getElementById('wifi-networks-list');
+        if (!networks || networks.length === 0) {
+            list.innerHTML = '<p>No WiFi networks configured. Add one to easily reuse credentials when creating controllers.</p>';
+            return;
+        }
+        
+        list.innerHTML = networks.map((net, idx) => `
+            <div class="wifi-network-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px;">
+                <div>
+                    <strong>📶 ${net.ssid}</strong>
+                    <br>
+                    <small>Password: ${'*'.repeat(Math.min(net.password.length, 12))}</small>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="deleteWiFiNetwork(${idx})">🗑️ Delete</button>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load WiFi networks:', error);
+        showNotification('Failed to load WiFi networks', 'error');
+    }
+}
+
+function addWiFiNetworkDialog() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>➕ Add WiFi Network</h2>
+            <p>Add WiFi credentials to reuse when creating controllers.</p>
+            
+            <div class="form-group">
+                <label for="new-wifi-ssid">WiFi SSID:</label>
+                <input type="text" id="new-wifi-ssid" placeholder="Network Name" required />
+            </div>
+            
+            <div class="form-group">
+                <label for="new-wifi-password">WiFi Password:</label>
+                <input type="password" id="new-wifi-password" placeholder="Password" required />
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-success" onclick="saveWiFiNetwork()">💾 Save Network</button>
+                <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function saveWiFiNetwork() {
+    const ssid = document.getElementById('new-wifi-ssid').value.trim();
+    const password = document.getElementById('new-wifi-password').value.trim();
+    
+    if (!ssid || !password) {
+        showNotification('Please enter both SSID and password', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('api/wifi-networks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ssid, password })
+        });
+        
+        if (response.ok) {
+            showNotification('✅ WiFi network saved!', 'success');
+            document.querySelector('.modal').remove();
+            await loadWiFiNetworks();
+        } else {
+            const error = await response.json();
+            showNotification('Failed to save network: ' + (error.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Failed to save WiFi network:', error);
+        showNotification('Failed to save WiFi network: ' + error.message, 'error');
+    }
+}
+
+async function deleteWiFiNetwork(index) {
+    if (!confirm('Delete this WiFi network?')) return;
+    
+    try {
+        const response = await fetch(`api/wifi-networks/${index}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showNotification('✅ WiFi network deleted', 'success');
+            await loadWiFiNetworks();
+        } else {
+            const error = await response.json();
+            showNotification('Failed to delete network: ' + (error.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Failed to delete WiFi network:', error);
+        showNotification('Failed to delete WiFi network: ' + error.message, 'error');
+    }
 }
 
 function updateZoomDisplay() {

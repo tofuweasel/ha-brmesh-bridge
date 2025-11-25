@@ -26,8 +26,12 @@ class WebUI:
         self.bridge = bridge
         self.setup_routes()
     
-    def _update_ha_secrets(self, wifi_ssid, wifi_password):
-        """Update Home Assistant's secrets.yaml with WiFi credentials"""
+    def _update_ha_secrets(self, wifi_ssid, wifi_password, network_id=None):
+        """Update Home Assistant's secrets.yaml with WiFi credentials
+        
+        If network_id is provided, uses that specific network from the list.
+        Otherwise, updates the default wifi_ssid/wifi_password for new controllers.
+        """
         import yaml
         
         secrets_path = '/config/secrets.yaml'
@@ -41,7 +45,12 @@ class WebUI:
             except Exception as e:
                 logger.warning(f"Could not read existing secrets.yaml: {e}")
         
-        # Update WiFi credentials
+        # If network_id provided, get credentials from that network
+        if network_id is not None:
+            wifi_ssid = secrets.get(f'wifi_network_{network_id}_ssid', wifi_ssid)
+            wifi_password = secrets.get(f'wifi_network_{network_id}_password', wifi_password)
+        
+        # Update default WiFi credentials (used by ESPHome configs)
         secrets['wifi_ssid'] = wifi_ssid
         secrets['wifi_password'] = wifi_password
         
@@ -241,7 +250,12 @@ class WebUI:
             """Add a new ESP32 controller"""
             try:
                 controller_data = request.json
-                logger.info(f"📡 Received controller data: {controller_data}")
+                
+                # Log controller data with masked secrets
+                safe_data = controller_data.copy()
+                if 'wifi_password' in safe_data:
+                    safe_data['wifi_password'] = '***MASKED***'
+                logger.info(f"📡 Received controller data: {safe_data}")
                 
                 # Auto-generate name if not provided
                 if not controller_data.get('name'):
@@ -266,14 +280,24 @@ class WebUI:
                 controller_data['id'] = controller_id
                 
                 # Handle WiFi secrets for new controllers
-                if controller_data.get('generate_esphome') and controller_data.get('wifi_ssid'):
-                    wifi_ssid = controller_data.pop('wifi_ssid')
-                    wifi_password = controller_data.pop('wifi_password')
+                if controller_data.get('generate_esphome'):
+                    network_id = controller_data.pop('network_id', None)
+                    wifi_ssid = controller_data.pop('wifi_ssid', None)
+                    wifi_password = controller_data.pop('wifi_password', None)
                     
                     # Update Home Assistant's secrets.yaml
                     try:
-                        self._update_ha_secrets(wifi_ssid, wifi_password)
-                        logger.info(f"🔐 Updated WiFi credentials in /config/secrets.yaml")
+                        if network_id is not None:
+                            # Using pre-configured network
+                            self._update_ha_secrets(network_id=network_id)
+                            logger.info(f"🔐 Using WiFi network #{network_id} from /config/secrets.yaml")
+                        elif wifi_ssid and wifi_password:
+                            # Using new WiFi credentials
+                            self._update_ha_secrets(wifi_ssid, wifi_password)
+                            logger.info(f"🔐 Updated WiFi credentials in /config/secrets.yaml")
+                        else:
+                            logger.error("No WiFi credentials provided")
+                            return jsonify({'error': 'WiFi credentials are required for new controllers'}), 400
                     except Exception as e:
                         logger.error(f"Failed to update secrets: {e}")
                         return jsonify({'error': f'Failed to save WiFi credentials: {e}'}), 500
@@ -583,6 +607,112 @@ class WebUI:
                 
                 return jsonify({'success': True, 'message': 'Settings reset to defaults. Restart the add-on.'})
             except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/wifi-networks', methods=['GET'])
+        def get_wifi_networks():
+            """Get list of configured WiFi networks (SSIDs only, not passwords)"""
+            try:
+                import yaml
+                secrets_path = '/config/secrets.yaml'
+                
+                if not os.path.exists(secrets_path):
+                    return jsonify({'networks': []})
+                
+                with open(secrets_path, 'r') as f:
+                    secrets = yaml.safe_load(f) or {}
+                
+                # Get all wifi network SSIDs (stored as wifi_network_0, wifi_network_1, etc.)
+                networks = []
+                i = 0
+                while f'wifi_network_{i}_ssid' in secrets:
+                    networks.append({
+                        'id': i,
+                        'ssid': secrets[f'wifi_network_{i}_ssid']
+                    })
+                    i += 1
+                
+                # Also check for legacy wifi_ssid
+                if 'wifi_ssid' in secrets and not networks:
+                    networks.append({
+                        'id': -1,  # Legacy entry
+                        'ssid': secrets['wifi_ssid']
+                    })
+                
+                return jsonify({'networks': networks})
+            except Exception as e:
+                logger.error(f"Failed to get WiFi networks: {e}")
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/wifi-networks', methods=['POST'])
+        def add_wifi_network():
+            """Add a new WiFi network"""
+            try:
+                import yaml
+                data = request.json
+                ssid = data.get('ssid')
+                password = data.get('password')
+                
+                if not ssid or not password:
+                    return jsonify({'error': 'SSID and password required'}), 400
+                
+                secrets_path = '/config/secrets.yaml'
+                secrets = {}
+                
+                if os.path.exists(secrets_path):
+                    with open(secrets_path, 'r') as f:
+                        secrets = yaml.safe_load(f) or {}
+                
+                # Find next available ID
+                i = 0
+                while f'wifi_network_{i}_ssid' in secrets:
+                    i += 1
+                
+                # Add new network
+                secrets[f'wifi_network_{i}_ssid'] = ssid
+                secrets[f'wifi_network_{i}_password'] = password
+                
+                # Save
+                with open(secrets_path, 'w') as f:
+                    yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                
+                logger.info(f"✅ Added WiFi network: {ssid}")
+                return jsonify({'success': True, 'id': i, 'ssid': ssid})
+            except Exception as e:
+                logger.error(f"Failed to add WiFi network: {e}")
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/wifi-networks/<int:network_id>', methods=['DELETE'])
+        def delete_wifi_network(network_id):
+            """Delete a WiFi network"""
+            try:
+                import yaml
+                secrets_path = '/config/secrets.yaml'
+                
+                if not os.path.exists(secrets_path):
+                    return jsonify({'error': 'No WiFi networks configured'}), 404
+                
+                with open(secrets_path, 'r') as f:
+                    secrets = yaml.safe_load(f) or {}
+                
+                # Remove the network
+                ssid_key = f'wifi_network_{network_id}_ssid'
+                pass_key = f'wifi_network_{network_id}_password'
+                
+                if ssid_key not in secrets:
+                    return jsonify({'error': 'Network not found'}), 404
+                
+                ssid = secrets.pop(ssid_key)
+                secrets.pop(pass_key, None)
+                
+                # Save
+                with open(secrets_path, 'w') as f:
+                    yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                
+                logger.info(f"🗑️  Deleted WiFi network: {ssid}")
+                return jsonify({'success': True})
+            except Exception as e:
+                logger.error(f"Failed to delete WiFi network: {e}")
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/settings/import-app', methods=['POST'])

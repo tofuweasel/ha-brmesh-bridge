@@ -39,9 +39,9 @@ class ESPHomeBuilder:
             logger.info(f"📄 Config file: {yaml_file}")
             logger.info("⏳ This may take 5-10 minutes for first build (downloading external components)...")
             
-            # Run ESPHome compile command with verbose output
+            # Run ESPHome compile command (no --verbose flag, it's not supported in this version)
             result = subprocess.run(
-                ['esphome', 'compile', yaml_file, '--verbose'],
+                ['esphome', 'compile', yaml_file],
                 capture_output=True,
                 text=True,
                 timeout=900,  # 15 minute timeout for first build
