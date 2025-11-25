@@ -115,6 +115,11 @@ async function loadLights() {
     try {
         const response = await fetch('api/lights');
         lights = await response.json();
+        // Ensure all lights have valid location objects
+        lights = lights.map(light => ({
+            ...light,
+            location: light.location || { x: null, y: null }
+        }));
         renderLights();
         renderLightSelectors();
         updateMapMarkers();
@@ -127,6 +132,11 @@ async function loadControllers() {
     try {
         const response = await fetch('api/controllers');
         controllers = await response.json();
+        // Ensure all controllers have valid location objects
+        controllers = controllers.map(controller => ({
+            ...controller,
+            location: controller.location || { x: null, y: null }
+        }));
         renderControllers();
         updateMapMarkers();
     } catch (error) {
@@ -1075,7 +1085,9 @@ async function loadWiFiNetworks() {
             return;
         }
         
-        list.innerHTML = networks.map((net) => `
+        list.innerHTML = networks
+            .filter(net => net.id >= 0)  // Skip legacy network ID (-1)
+            .map((net) => `
             <div class="wifi-network-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px;">
                 <div>
                     <strong>📶 ${net.ssid}</strong>

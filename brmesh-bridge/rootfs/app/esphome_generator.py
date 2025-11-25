@@ -42,9 +42,13 @@ class ESPHomeConfigGenerator:
         
         config = {
             'esphome': {
-                'name': controller_name,
-                'platform': 'esp32',
-                'board': 'esp32dev'
+                'name': controller_name
+            },
+            'esp32': {
+                'board': 'esp32dev',
+                'framework': {
+                    'type': 'arduino'
+                }
             },
             'wifi': wifi_config,
             'api': {
