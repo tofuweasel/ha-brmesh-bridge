@@ -15,8 +15,15 @@ RUN apk add --no-cache \
     musl-dev \
     linux-headers \
     git \
+    openssh-client \
+    ca-certificates \
     make \
     python3-dev
+
+# Configure git for better compatibility
+RUN git config --global http.postBuffer 524288000 && \
+    git config --global http.lowSpeedLimit 0 && \
+    git config --global http.lowSpeedTime 999999
 
 # Install Python packages
 # Install ESPHome first to lock in its dependency versions (including paho-mqtt 1.6.1)
