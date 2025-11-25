@@ -608,7 +608,9 @@ async function saveController() {
             const result = await response.json();
             showNotification('Controller added successfully!', 'success');
             if (generateEsphome && result.esphome_path) {
-                showNotification(`ESPHome config generated at ${result.esphome_path}`, 'info');
+                showNotification(`✅ ESPHome config generated! Open ESPHome Dashboard and look for ${result.esphome_path.split('/').pop()}`, 'success');
+            } else if (generateEsphome) {
+                showNotification('⚠️ ESPHome config generation failed. Check logs.', 'error');
             }
             document.querySelector('.modal').remove();
             await loadControllers();

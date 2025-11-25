@@ -224,7 +224,21 @@ class WebUI:
                 esphome_path = None
                 if controller_data.get('generate_esphome') and self.bridge.esphome_generator:
                     # All controllers get all lights in a mesh network
-                    esphome_path = self.bridge.esphome_generator.generate_controller_config(controller_data)
+                    yaml_config = self.bridge.esphome_generator.generate_controller_config(controller_data)
+                    
+                    # Save to file
+                    controller_name = controller_data['name'].lower().replace(' ', '-')
+                    filename = f"{controller_name}.yaml"
+                    filepath = os.path.join('/config/esphome', filename)
+                    
+                    try:
+                        os.makedirs('/config/esphome', exist_ok=True)
+                        with open(filepath, 'w') as f:
+                            f.write(yaml_config)
+                        esphome_path = filepath
+                        logger.info(f"📝 Generated ESPHome config: {filepath}")
+                    except Exception as e:
+                        logger.error(f"Failed to write ESPHome config: {e}")
                 
                 logger.info(f"✅ Controller added successfully with ID: {controller_id}")
                 return jsonify({'success': True, 'id': controller_id, 'esphome_path': esphome_path})
@@ -276,7 +290,11 @@ class WebUI:
                     return jsonify({'error': 'BLE discovery not enabled. Check bluetooth permissions and enable_ble_discovery setting.'}), 400
             except Exception as e:
                 logger.error(f"❌ Scan error: {str(e)}", exc_info=True)
-                return jsonify({'error': str(e)}), 500
+                # Provide helpful error message for common Bluetooth issues
+                error_msg = str(e)
+                if 'No such file or directory' in error_msg or 'Errno 2' in error_msg:
+                    error_msg = 'Bluetooth adapter not accessible. Make sure the add-on has bluetooth: true in config and your system has Bluetooth hardware.'
+                return jsonify({'error': error_msg}), 500
         
         @app.route('/api/import/app', methods=['POST'])
         def import_from_app():
