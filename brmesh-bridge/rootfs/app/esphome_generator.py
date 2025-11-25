@@ -180,6 +180,39 @@ class ESPHomeConfigGenerator:
             logger.info(f"📖 File exists, validating existing keys...")
             # Check if OTA/API keys exist, add them if missing or invalid
             try:
+                # Read as text first to check for duplicates
+                with open(ha_secrets_path, 'r') as f:
+                    content = f.read()
+                
+                # Remove duplicate keys by keeping only the last occurrence
+                lines = content.split('\n')
+                seen_keys = {}
+                for i, line in enumerate(lines):
+                    if ':' in line and not line.strip().startswith('#'):
+                        key = line.split(':')[0].strip()
+                        if key:
+                            seen_keys[key] = i
+                
+                # Check if we have duplicates
+                duplicate_count = len(lines) - len([l for l in lines if not l.strip() or l.strip().startswith('#') or ':' not in l]) - len(seen_keys)
+                if duplicate_count > 0:
+                    logger.warning(f"⚠️  Found {duplicate_count} duplicate keys, cleaning up...")
+                    # Rebuild file with only unique keys (last occurrence wins)
+                    deduplicated_lines = []
+                    for i, line in enumerate(lines):
+                        if ':' in line and not line.strip().startswith('#'):
+                            key = line.split(':')[0].strip()
+                            if key and seen_keys.get(key) == i:
+                                deduplicated_lines.append(line)
+                        else:
+                            deduplicated_lines.append(line)
+                    content = '\n'.join(deduplicated_lines)
+                    # Write cleaned file back
+                    with open(ha_secrets_path, 'w') as f:
+                        f.write(content)
+                    logger.info(f"✅ Removed duplicate keys from secrets.yaml")
+                
+                # Now parse the cleaned content
                 with open(ha_secrets_path, 'r') as f:
                     secrets = yaml.load(f) or {}
                 
