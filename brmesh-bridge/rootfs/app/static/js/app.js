@@ -1130,13 +1130,16 @@ function showNotification(message, type = 'info') {
 }
 
 // ESP32 Build & Flash Functions
-async function buildFirmware(controllerName) {
-    const buildBtn = event.target;
-    const originalText = buildBtn.textContent;
+async function buildFirmware(controllerName, eventOrButton = null) {
+    // Handle both event-based (button click) and programmatic calls
+    const buildBtn = eventOrButton?.target || eventOrButton;
+    const originalText = buildBtn?.textContent;
     
     try {
-        buildBtn.disabled = true;
-        buildBtn.textContent = '🔨 Building...';
+        if (buildBtn) {
+            buildBtn.disabled = true;
+            buildBtn.textContent = '🔨 Building...';
+        }
         showNotification(`Building firmware for ${controllerName}... This may take 5-10 minutes.`, 'info');
         
         const response = await fetch(`api/esphome/build/${controllerName}`, {
@@ -1155,14 +1158,17 @@ async function buildFirmware(controllerName) {
         console.error('Build error:', error);
         showNotification(`❌ Build failed: ${error.message}`, 'error');
     } finally {
-        buildBtn.disabled = false;
-        buildBtn.textContent = originalText;
+        if (buildBtn) {
+            buildBtn.disabled = false;
+            buildBtn.textContent = originalText;
+        }
     }
 }
 
-async function flashFirmware(controllerName) {
-    const flashBtn = event.target;
-    const originalText = flashBtn.textContent;
+async function flashFirmware(controllerName, eventOrButton = null) {
+    // Handle both event-based (button click) and programmatic calls
+    const flashBtn = eventOrButton?.target || eventOrButton;
+    const originalText = flashBtn?.textContent;
     
     try {
         // Get available serial ports
@@ -1176,8 +1182,10 @@ async function flashFirmware(controllerName) {
             if (!port) return; // User cancelled
         }
         
-        flashBtn.disabled = true;
-        flashBtn.textContent = '⚡ Flashing...';
+        if (flashBtn) {
+            flashBtn.disabled = true;
+            flashBtn.textContent = '⚡ Flashing...';
+        }
         showNotification(`Flashing firmware to ${controllerName}... Keep ESP32 connected!`, 'info');
         
         const response = await fetch(`api/esphome/flash/${controllerName}`, {
@@ -1198,18 +1206,23 @@ async function flashFirmware(controllerName) {
         console.error('Flash error:', error);
         showNotification(`❌ Flash failed: ${error.message}`, 'error');
     } finally {
-        flashBtn.disabled = false;
-        flashBtn.textContent = originalText;
+        if (flashBtn) {
+            flashBtn.disabled = false;
+            flashBtn.textContent = originalText;
+        }
     }
 }
 
-async function buildAndFlash(controllerName) {
-    const btn = event.target;
-    const originalText = btn.textContent;
+async function buildAndFlash(controllerName, eventOrButton = null) {
+    // Handle both event-based (button click) and programmatic calls
+    const btn = eventOrButton?.target || eventOrButton;
+    const originalText = btn?.textContent;
     
     try {
-        btn.disabled = true;
-        btn.textContent = '🚀 Building...';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '🚀 Building...';
+        }
         
         // First, build
         showNotification(`Building firmware for ${controllerName}...`, 'info');
@@ -1223,7 +1236,9 @@ async function buildAndFlash(controllerName) {
             return;
         }
         
-        btn.textContent = '🚀 Flashing...';
+        if (btn) {
+            btn.textContent = '🚀 Flashing...';
+        }
         
         // Get port
         const portsResponse = await fetch('api/esphome/ports');
@@ -1252,8 +1267,10 @@ async function buildAndFlash(controllerName) {
         console.error('Build & flash error:', error);
         showNotification(`❌ Failed: ${error.message}`, 'error');
     } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
     }
 }
 
