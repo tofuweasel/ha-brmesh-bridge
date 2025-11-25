@@ -496,9 +496,9 @@ function renderControllers() {
         const card = document.createElement('div');
         card.className = 'controller-card';
         
+        // Don't show online status - we don't actually check connectivity
         card.innerHTML = `
             <div class="controller-status">
-                <span class="status-indicator online"></span>
                 <strong>${controller.name}</strong>
             </div>
             <div class="controller-info">
@@ -763,13 +763,32 @@ function hexToRgb(hex) {
 }
 
 async function scanForLights() {
+    const scanBtn = document.getElementById('scan-btn');
+    const originalText = scanBtn.textContent;
+    
     try {
+        // Show progress
+        scanBtn.disabled = true;
+        scanBtn.textContent = '🔍 Scanning... (30s)';
+        showNotification('Scanning for BRMesh lights... This will take 30 seconds.', 'info');
+        
         const response = await fetch('api/scan', { method: 'POST' });
         const result = await response.json();
-        alert(`Found ${result.lights?.length || 0} new lights`);
-        await loadLights();
+        
+        if (result.error) {
+            showNotification(`Scan failed: ${result.error}`, 'error');
+        } else {
+            showNotification(`Found ${result.count || 0} new lights!`, result.count > 0 ? 'success' : 'info');
+            if (result.count > 0) {
+                await loadLights();
+            }
+        }
     } catch (error) {
         console.error('Failed to scan for lights:', error);
+        showNotification('Scan failed. Check add-on logs for details.', 'error');
+    } finally {
+        scanBtn.disabled = false;
+        scanBtn.textContent = originalText;
     }
 }
 
