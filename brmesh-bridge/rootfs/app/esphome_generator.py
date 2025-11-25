@@ -140,17 +140,20 @@ class ESPHomeConfigGenerator:
         if not os.path.exists(ha_secrets_path):
             # Create basic secrets file if it doesn't exist
             try:
+                api_key = self._generate_random_key()
+                ota_pass = self._generate_random_password()
                 secrets = {
                     'wifi_ssid': 'Your_WiFi_SSID',
                     'wifi_password': 'your_wifi_password',
                     'gateway': '192.168.1.1',
                     'subnet': '255.255.255.0',
-                    'api_encryption_key': self._generate_random_key(),
-                    'ota_password': self._generate_random_password()
+                    'api_encryption_key': api_key,
+                    'ota_password': ota_pass
                 }
                 with open(ha_secrets_path, 'w') as f:
                     yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
                 logger.info(f"✅ Created /config/secrets.yaml with generated keys")
+                logger.info(f"🔑 API key length: {len(api_key)}, valid base64: {self._is_valid_base64_key(api_key)}")
             except Exception as e:
                 logger.error(f"Failed to create secrets file: {e}")
         else:
@@ -166,6 +169,8 @@ class ESPHomeConfigGenerator:
                     logger.info(f"🔑 Regenerating invalid api_encryption_key (was: {api_key[:20] if api_key else 'missing'}...)")
                     secrets['api_encryption_key'] = self._generate_random_key()
                     updated = True
+                else:
+                    logger.info(f"✅ API encryption key is valid (length: {len(api_key)})")
                 
                 # Generate or replace invalid OTA password
                 ota_pass = secrets.get('ota_password', '')
@@ -173,6 +178,8 @@ class ESPHomeConfigGenerator:
                     logger.info(f"🔑 Regenerating invalid ota_password")
                     secrets['ota_password'] = self._generate_random_password()
                     updated = True
+                else:
+                    logger.info(f"✅ OTA password is valid")
                 
                 if updated:
                     with open(ha_secrets_path, 'w') as f:
