@@ -77,7 +77,7 @@ class ESPHomeConfigGenerator:
             }],
             'esp32_ble_server': {},
             'fastcon': {
-                'mesh_key': self.bridge.config.get('mesh_key', '30323336')
+                'mesh_key': '!secret mesh_key'
             },
             'light': []
         }
@@ -189,7 +189,8 @@ class ESPHomeConfigGenerator:
                     'gateway': '192.168.1.1',
                     'subnet': '255.255.255.0',
                     'api_encryption_key': api_key,
-                    'ota_password': ota_pass
+                    'ota_password': ota_pass,
+                    'mesh_key': self.bridge.config.get('mesh_key', '30323336')
                 }
                 yaml_handler = self._get_yaml_handler()
                 with open(ha_secrets_path, 'w') as f:
@@ -240,6 +241,12 @@ class ESPHomeConfigGenerator:
                     if not isinstance(ota_pass, PlainScalarString):
                         secrets['ota_password'] = PlainScalarString(str(ota_pass))
                         updated = True
+                
+                # Ensure mesh_key is present (from bridge config)
+                if 'mesh_key' not in secrets and self.bridge.config.get('mesh_key'):
+                    logger.info(f"🔑 Adding mesh_key to secrets")
+                    secrets['mesh_key'] = PlainScalarString(self.bridge.config.get('mesh_key'))
+                    updated = True
                 
                 if updated:
                     yaml_handler = self._get_yaml_handler()
