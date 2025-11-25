@@ -64,13 +64,9 @@ class ESPHomeConfigGenerator:
                 'level': 'INFO'
             },
             'external_components': [{
-                'source': {
-                    'type': 'git',
-                    'url': 'https://github.com/scross01/esphome-fastcon.git',
-                    'ref': 'main'
-                },
+                'source': 'https://github.com/scross01/esphome-fastcon/archive/refs/heads/main.zip',
                 'components': ['fastcon'],
-                'refresh': '1d'  # Cache for 1 day to avoid repeated clones
+                'refresh': '1d'  # Cache for 1 day to avoid repeated downloads
             }],
             'esp32_ble_server': {},
             'fastcon': {
