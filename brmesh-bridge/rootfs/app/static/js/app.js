@@ -547,8 +547,7 @@ function renderControllers() {
             </div>
             <div class="controller-actions">
                 <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
-                <button class="btn btn-success" onclick="buildFirmware('${controllerName}')">🔨 Build</button>
-                <button class="btn btn-warning" onclick="flashFirmware('${controllerName}')">⚡ Flash</button>
+                <button class="btn btn-success" onclick="window.open('/config/esphome', '_blank')">🔧 Open ESPHome</button>
             </div>
         `;
         
@@ -809,16 +808,15 @@ async function generateESPHomeController() {
             // Show build instructions
             if (result.esphome_path) {
                 const instructions = `
-✅ ESPHome config generated: ${result.esphome_path}
+✅ Config generated: ${result.esphome_path}
 
-📥 To build and flash firmware:
+🔧 Next: Open ESPHome Dashboard to build & flash:
+   Settings → Add-ons → ESPHome → Open Web UI
+   
+Your controller "${result.name}" will appear in the dashboard.
+Click INSTALL to build and flash firmware via USB or OTA.
 
-1. Download the config file from the Controllers tab
-2. Build locally with ESPHome:
-   esphome run ${result.name}.yaml
-3. Follow prompts to flash via USB or OTA
-
-Local builds are faster and more reliable than container builds.
+💡 ESPHome handles compilation, flashing, and OTA updates automatically!
                 `.trim();
                 
                 showNotification(instructions, 'success', 15000);
