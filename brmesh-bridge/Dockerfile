@@ -38,12 +38,29 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "esphome>=2024.11.0" \
     "platformio>=6.1.0"
 
+# Install all PlatformIO Python dependencies that it would normally install in penv
+RUN pip3 install --break-system-packages --no-cache-dir \
+    "bottle>=0.12,<0.13" \
+    "certifi" \
+    "click>=8,<9" \
+    "colorama" \
+    "pyelftools>=0.27,<1" \
+    "pyserial>=3.5,<4" \
+    "requests>=2.4.0,<3" \
+    "semantic-version>=2.10,<3" \
+    "tabulate>=0.8.3,<1" \
+    "marshmallow>=3.20,<4" \
+    "zeroconf>=0.131,<1" \
+    "aiofiles>=22.1,<24" \
+    "wsproto>=1.2,<2" \
+    "starlette>=0.35,<1" \
+    "uvicorn>=0.27,<1"
+
 # Install remaining packages (compatible with ESPHome's dependencies)
 RUN pip3 install --break-system-packages --no-cache-dir \
     "bleak>=0.22.0,<1.0.0" \
     "flask>=3.0.0,<4.0.0" \
     "flask-cors>=5.0.0,<6.0.0" \
-    "requests>=2.32.0,<3.0.0" \
     "pillow>=10.0.0,<12.0.0" \
     "numpy>=2.0.0,<3.0.0" \
     "ruamel.yaml>=0.17.0,<1.0.0"
