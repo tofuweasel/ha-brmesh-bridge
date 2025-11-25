@@ -72,7 +72,7 @@ class ESPHomeConfigGenerator:
                 'level': 'INFO'
             },
             'external_components': [{
-                'source': '/app/external_components',
+                'source': 'github://scross01/esphome-fastcon@dev',
                 'components': ['fastcon']
             }],
             'esp32_ble_server': {},
