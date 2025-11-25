@@ -546,7 +546,9 @@ function renderControllers() {
                 <div>Location: (${controller.location?.x || 0}, ${controller.location?.y || 0})</div>
             </div>
             <div class="controller-actions">
-                <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download Config</button>
+                <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
+                <button class="btn btn-success" onclick="buildFirmware('${controllerName}')">🔨 Build</button>
+                <button class="btn btn-warning" onclick="flashFirmware('${controllerName}')">⚡ Flash</button>
             </div>
         `;
         
@@ -1437,10 +1439,45 @@ async function downloadESPHomeConfig(controllerName) {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        showNotification(`✅ ESPHome config downloaded: ${controllerName}.yaml\n\n📋 To build and flash:\n1. Open terminal in the download folder\n2. Run: esphome run ${controllerName}.yaml\n3. Follow prompts to flash via USB or OTA`, 'success', 10000);
+        showNotification(`✅ ESPHome config downloaded: ${controllerName}.yaml\n\n� You can also build directly in the addon using the Build button, or build locally with: esphome run ${controllerName}.yaml`, 'success', 10000);
     } catch (error) {
         console.error('Download error:', error);
         showNotification(`Failed to download config: ${error.message}`, 'error');
+    }
+}
+
+async function buildFirmware(controllerName, eventOrButton = null) {
+    // Handle both event-based (button click) and programmatic calls
+    const buildBtn = eventOrButton?.target || eventOrButton;
+    const originalText = buildBtn?.textContent;
+    
+    try {
+        if (buildBtn) {
+            buildBtn.disabled = true;
+            buildBtn.textContent = '🔨 Building...';
+        }
+        showNotification(`Building firmware for ${controllerName}... This may take 5-10 minutes.`, 'info');
+        
+        const response = await fetch(`api/esphome/build/${controllerName}`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ Firmware built successfully! Ready to flash.`, 'success');
+        } else {
+            showNotification(`❌ Build failed: ${result.error}`, 'error');
+            console.error('Build output:', result.output);
+        }
+    } catch (error) {
+        console.error('Build error:', error);
+        showNotification(`❌ Build failed: ${error.message}`, 'error');
+    } finally {
+        if (buildBtn) {
+            buildBtn.disabled = false;
+            buildBtn.textContent = originalText;
+        }
     }
 }
 

@@ -454,13 +454,8 @@ class WebUI:
                 if not controller:
                     return jsonify({'error': 'Controller not found'}), 404
                 
-                # Find assigned lights
-                assigned_lights = [
-                    light_id for light_id, light in self.bridge.lights.items()
-                    if light.get('preferred_controller') == controller_name
-                ]
-                
-                yaml_config = self.bridge.esphome_generator.generate_controller_config(controller, assigned_lights)
+                # Generate config (includes all lights for mesh network)
+                yaml_config = self.bridge.esphome_generator.generate_controller_config(controller)
                 
                 return Response(
                     yaml_config,
