@@ -129,7 +129,12 @@
                     <h3>Core Settings</h3>
                     <div class="form-group">
                         <label for="mesh-key">Mesh Key (8 hex characters):</label>
-                        <input type="text" id="mesh-key" maxlength="8" pattern="[0-9a-fA-F]{8}" />
+                        <div style="position: relative; display: flex; align-items: center; gap: 8px;">
+                            <input type="password" id="mesh-key" maxlength="8" pattern="[0-9a-fA-F]{8}" style="flex: 1;" />
+                            <button type="button" id="toggle-mesh-key" style="padding: 8px 12px; cursor: pointer; background: #555; border: 1px solid #777; border-radius: 4px; color: white;">
+                                👁️
+                            </button>
+                        </div>
                         <small>Extract from BRMesh app via ADB logcat</small>
                     </div>
                 </div>

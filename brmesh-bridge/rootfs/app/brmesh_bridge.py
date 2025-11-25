@@ -43,6 +43,22 @@ class BRMeshBridge:
         # Configuration from add-on options
         self.mesh_key = self.config.get('mesh_key', '')
         
+        # Try to load mesh_key from secrets.yaml if not in config
+        if not self.mesh_key:
+            try:
+                from ruamel.yaml import YAML
+                secrets_path = '/config/secrets.yaml'
+                if os.path.exists(secrets_path):
+                    yaml = YAML()
+                    with open(secrets_path, 'r') as f:
+                        secrets = yaml.load(f) or {}
+                    self.mesh_key = secrets.get('mesh_key', '')
+                    if self.mesh_key:
+                        self.config['mesh_key'] = self.mesh_key
+                        logger.info(f"✅ Loaded mesh_key from secrets.yaml")
+            except Exception as e:
+                logger.warning(f"Could not load mesh_key from secrets.yaml: {e}")
+        
         # Get MQTT credentials from environment (set by Bashio in run script)
         self.mqtt_host = os.getenv('MQTT_HOST', 'core-mosquitto')
         self.mqtt_port = int(os.getenv('MQTT_PORT', '1883'))
@@ -392,7 +408,7 @@ class BRMeshBridge:
         """Main run loop"""
         logger.info("=" * 80)
         logger.info("=" * 80)
-        logger.info("🚀 BRMesh Bridge v0.16.7 - Starting Up (Bashio)")
+        logger.info("🚀 BRMesh Bridge v0.16.8 - Starting Up (Bashio)")
         logger.info("=" * 80)
         logger.info(f"📡 Mesh Key: {self.mesh_key if self.mesh_key else '(not configured - use Web UI)'}")
         logger.info(f"🔌 MQTT Broker: {self.mqtt_host}:{self.mqtt_port}")

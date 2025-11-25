@@ -43,6 +43,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('add-controller-btn').addEventListener('click', addExistingController);
     document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
     
+    // Mesh key visibility toggle
+    document.getElementById('toggle-mesh-key').addEventListener('click', () => {
+        const input = document.getElementById('mesh-key');
+        const button = document.getElementById('toggle-mesh-key');
+        if (input.type === 'password') {
+            input.type = 'text';
+            button.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            button.textContent = '👁️';
+        }
+    });
+    
     // Auto-refresh every 5 seconds
     setInterval(refreshAll, 5000);
 });
