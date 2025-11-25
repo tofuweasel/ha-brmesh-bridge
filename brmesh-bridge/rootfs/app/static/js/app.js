@@ -1183,6 +1183,45 @@ async function deleteWiFiNetwork(index) {
     }
 }
 
+async function testGitConnectivity() {
+    const resultsDiv = document.getElementById('git-test-results');
+    resultsDiv.style.display = 'block';
+    resultsDiv.textContent = '🔄 Testing git and GitHub connectivity... This may take up to 60 seconds...';
+    
+    try {
+        const response = await fetch('api/diagnostics/git-test');
+        const results = await response.json();
+        
+        let output = '=== Git/GitHub Connectivity Test Results ===\n\n';
+        
+        output += '1. Git Version:\n' + results.git_version + '\n\n';
+        output += '2. Git Configuration:\n' + results.git_config + '\n\n';
+        output += '3. DNS Resolution (github.com):\n' + results.dns_github + '\n\n';
+        output += '4. Repository Clone Test:\n';
+        
+        if (typeof results.clone_test === 'string') {
+            output += results.clone_test;
+        } else {
+            output += 'Success: ' + results.clone_test.success + '\n';
+            output += 'Return Code: ' + results.clone_test.returncode + '\n';
+            output += 'STDOUT:\n' + results.clone_test.stdout + '\n';
+            output += 'STDERR:\n' + results.clone_test.stderr;
+        }
+        
+        resultsDiv.textContent = output;
+        
+        if (typeof results.clone_test === 'object' && results.clone_test.success) {
+            showNotification('✅ Git/GitHub connectivity test passed!', 'success');
+        } else {
+            showNotification('⚠️ Git/GitHub connectivity test failed. Check results below.', 'warning');
+        }
+    } catch (error) {
+        console.error('Failed to run git test:', error);
+        resultsDiv.textContent = 'Error running test: ' + error.message;
+        showNotification('Failed to run git test: ' + error.message, 'error');
+    }
+}
+
 function updateZoomDisplay() {
     const zoom = document.getElementById('map-zoom').value;
     document.getElementById('zoom-value').textContent = zoom;

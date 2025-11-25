@@ -816,6 +816,73 @@ class WebUI:
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/diagnostics/git-test', methods=['GET'])
+        def test_git_connectivity():
+            """Test git and GitHub connectivity"""
+            try:
+                import subprocess
+                
+                results = {}
+                
+                # Test 1: Git version
+                try:
+                    git_version = subprocess.run(
+                        ['git', '--version'],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    results['git_version'] = git_version.stdout.strip() if git_version.returncode == 0 else f"Error: {git_version.stderr}"
+                except Exception as e:
+                    results['git_version'] = f"Error: {str(e)}"
+                
+                # Test 2: Git config
+                try:
+                    git_config = subprocess.run(
+                        ['git', 'config', '--list'],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    results['git_config'] = git_config.stdout if git_config.returncode == 0 else f"Error: {git_config.stderr}"
+                except Exception as e:
+                    results['git_config'] = f"Error: {str(e)}"
+                
+                # Test 3: DNS resolution for github.com
+                try:
+                    dns_test = subprocess.run(
+                        ['nslookup', 'github.com'],
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    results['dns_github'] = dns_test.stdout if dns_test.returncode == 0 else f"Error: {dns_test.stderr}"
+                except Exception as e:
+                    results['dns_github'] = f"Error: {str(e)}"
+                
+                # Test 4: Try to clone the repo (shallow clone)
+                try:
+                    import tempfile
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        clone_test = subprocess.run(
+                            ['git', 'clone', '--depth', '1', 'https://github.com/scross01/esphome-fastcon.git', tmpdir],
+                            capture_output=True,
+                            text=True,
+                            timeout=60
+                        )
+                        results['clone_test'] = {
+                            'success': clone_test.returncode == 0,
+                            'stdout': clone_test.stdout,
+                            'stderr': clone_test.stderr,
+                            'returncode': clone_test.returncode
+                        }
+                except Exception as e:
+                    results['clone_test'] = f"Error: {str(e)}"
+                
+                return jsonify(results)
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
         @app.route('/api/settings/export')
         def export_settings():
             """Export complete configuration as JSON"""
