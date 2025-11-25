@@ -478,6 +478,14 @@ class WebUI:
                 with open(options_path, 'w') as f:
                     json.dump(options, f, indent=2)
                 
+                # Update runtime config immediately (so it persists when save_config() is called)
+                self.bridge.config.update(options)
+                self.bridge.mesh_key = options['mesh_key']
+                logger.info(f"🔑 Updated mesh key: {self.bridge.mesh_key}")
+                
+                # Save to ensure mesh_key is persisted in the lights/controllers config
+                self.bridge.save_config()
+                
                 return jsonify({'success': True, 'message': 'Settings saved. Please restart the add-on.'})
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
