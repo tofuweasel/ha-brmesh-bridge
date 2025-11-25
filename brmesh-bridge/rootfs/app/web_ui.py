@@ -37,9 +37,8 @@ class WebUI:
         def get_config():
             """Get current configuration"""
             try:
-                with open('/data/options.json', 'r') as f:
-                    config = json.load(f)
-                return jsonify(config)
+                # Return the bridge's runtime config (includes auto-detected location)
+                return jsonify(self.bridge.config)
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
