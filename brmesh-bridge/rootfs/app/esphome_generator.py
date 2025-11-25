@@ -154,17 +154,19 @@ class ESPHomeConfigGenerator:
             except Exception as e:
                 logger.error(f"Failed to create secrets file: {e}")
         else:
-            # Check if OTA/API keys exist, add them if missing
+            # Check if OTA/API keys exist, add them if missing or invalid
             try:
                 with open(ha_secrets_path, 'r') as f:
                     secrets = yaml.safe_load(f) or {}
                 
                 updated = False
-                if 'api_encryption_key' not in secrets:
+                # Generate or replace invalid API encryption key
+                if 'api_encryption_key' not in secrets or secrets['api_encryption_key'] == 'generate_with_esphome':
                     secrets['api_encryption_key'] = self._generate_random_key()
                     updated = True
                 
-                if 'ota_password' not in secrets:
+                # Generate or replace invalid OTA password
+                if 'ota_password' not in secrets or secrets['ota_password'] == 'your_ota_password':
                     secrets['ota_password'] = self._generate_random_password()
                     updated = True
                 
