@@ -198,13 +198,11 @@ class ESPHomeConfigGenerator:
                     logger.info(f"✅ API encryption key is valid (length: {len(api_key)})")
                     logger.info(f"🔍 Key type: {type(api_key).__name__}")
                     logger.info(f"🔍 Key repr: {repr(api_key)}")
-                    # Ensure existing valid key is also plain scalar (no quotes)
-                    if not isinstance(api_key, PlainScalarString):
-                        logger.info(f"🔄 Converting key to PlainScalarString")
-                        secrets['api_encryption_key'] = PlainScalarString(str(api_key))
-                        updated = True
-                    else:
-                        logger.info(f"✅ Key is already PlainScalarString")
+                    # ALWAYS regenerate to ensure proper formatting (quotes issue)
+                    # Once ESPHome accepts the key, we can switch back to preserving it
+                    logger.warning(f"⚠️  Regenerating key to ensure proper formatting (ESPHome quote issue)")
+                    secrets['api_encryption_key'] = PlainScalarString(self._generate_random_key())
+                    updated = True
                 
                 # Generate or replace invalid OTA password
                 ota_pass = secrets.get('ota_password', '')
@@ -220,10 +218,28 @@ class ESPHomeConfigGenerator:
                         updated = True
                 
                 if updated:
+                    # Deduplicate secrets before saving
+                    seen_keys = set()
+                    deduplicated = {}
+                    for key in secrets:
+                        if key not in seen_keys:
+                            deduplicated[key] = secrets[key]
+                            seen_keys.add(key)
+                    
                     yaml_handler = self._get_yaml_handler()
                     with open(ha_secrets_path, 'w') as f:
-                        yaml_handler.dump(secrets, f)
-                    logger.info(f"✅ Updated /config/secrets.yaml with missing keys")
+                        yaml_handler.dump(deduplicated, f)
+                    logger.info(f"✅ Updated /config/secrets.yaml with missing keys (deduplicated {len(secrets) - len(deduplicated)} duplicate entries)")
+                    
+                    # Also copy to ESPHome directory so ESPHome can find it
+                    esphome_secrets_path = '/config/esphome/secrets.yaml'
+                    try:
+                        os.makedirs(os.path.dirname(esphome_secrets_path), exist_ok=True)
+                        with open(esphome_secrets_path, 'w') as f:
+                            yaml_handler.dump(deduplicated, f)
+                        logger.info(f"✅ Copied secrets to /config/esphome/secrets.yaml for ESPHome")
+                    except Exception as copy_error:
+                        logger.error(f"Failed to copy secrets to esphome directory: {copy_error}")
             except Exception as e:
                 logger.error(f"Failed to update secrets: {e}")
     
