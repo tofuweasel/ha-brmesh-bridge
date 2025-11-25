@@ -579,3 +579,110 @@ header h1 {
     font-size: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+/* Header title with version */
+.header-title {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.header-title .version {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: normal;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background: linear-gradient(135deg, #0a1628 0%, #1a2332 100%);
+    color: #e0e0e0;
+}
+
+body.dark-mode header {
+    background: #1e2836;
+}
+
+body.dark-mode header h1 {
+    color: #4a9eff;
+}
+
+body.dark-mode .header-title .version {
+    color: #999;
+}
+
+body.dark-mode .tabs {
+    background: #1e2836;
+}
+
+body.dark-mode .tab-btn {
+    background: #1e2836;
+    color: #e0e0e0;
+    border-bottom: 3px solid transparent;
+}
+
+body.dark-mode .tab-btn:hover {
+    background: #2a3648;
+}
+
+body.dark-mode .tab-btn.active {
+    background: #2a3648;
+    border-bottom-color: #4a9eff;
+}
+
+body.dark-mode .tab-content {
+    background: #1e2836;
+}
+
+body.dark-mode .light-card,
+body.dark-mode .controller-card,
+body.dark-mode .effect-card,
+body.dark-mode .scene-card {
+    background: #2a3648;
+    border-color: #3a4658;
+}
+
+body.dark-mode .light-card:hover,
+body.dark-mode .controller-card:hover,
+body.dark-mode .effect-card:hover,
+body.dark-mode .scene-card:hover {
+    border-color: #4a9eff;
+}
+
+body.dark-mode input[type="text"],
+body.dark-mode input[type="number"],
+body.dark-mode input[type="password"],
+body.dark-mode select,
+body.dark-mode textarea {
+    background: #2a3648;
+    border-color: #3a4658;
+    color: #e0e0e0;
+}
+
+body.dark-mode input[type="text"]:focus,
+body.dark-mode input[type="number"]:focus,
+body.dark-mode input[type="password"]:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+    border-color: #4a9eff;
+}
+
+body.dark-mode .settings-section {
+    background: #2a3648;
+    border-color: #3a4658;
+}
+
+body.dark-mode .settings-section h3 {
+    color: #4a9eff;
+}
+
+body.dark-mode .map-controls {
+    background: rgba(30, 40, 54, 0.95);
+}
+
+body.dark-mode #dark-mode-toggle {
+    background: #f39c12;
+}
+
+body.dark-mode #dark-mode-toggle:hover {
+    background: #e67e22;
+}

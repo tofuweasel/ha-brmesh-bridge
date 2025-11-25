@@ -12,6 +12,7 @@ let currentLightForColor = null;
 document.addEventListener('DOMContentLoaded', async () => {
     setupTabs();
     setupModals();
+    setupDarkMode();
     await loadConfig();
     await loadLights();
     await loadControllers();
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('save-layout-btn').addEventListener('click', saveLayout);
     document.getElementById('create-scene-btn').addEventListener('click', createScene);
     document.getElementById('add-controller-btn').addEventListener('click', addController);
+    document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
     
     // Auto-refresh every 5 seconds
     setInterval(refreshAll, 5000);
@@ -730,6 +732,72 @@ async function exportConfig() {
     } catch (error) {
         console.error('Failed to export config:', error);
         showNotification('Failed to export configuration', 'error');
+    }
+}
+
+// Show notification banner
+function showNotification(message, type = 'info') {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById('notification-banner');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification-banner';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 400px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+        `;
+        document.body.appendChild(notification);
+    }
+    
+    // Set color based on type
+    const colors = {
+        success: '#4caf50',
+        error: '#f44336',
+        warning: '#ff9800',
+        info: '#2196f3'
+    };
+    
+    notification.style.backgroundColor = colors[type] || colors.info;
+    notification.style.color = 'white';
+    notification.textContent = message;
+    notification.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 5000);
+}
+
+// Dark mode functionality
+function setupDarkMode() {
+    // Check localStorage for saved preference
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+        document.body.classList.add('dark-mode');
+        updateDarkModeIcon();
+    }
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+    updateDarkModeIcon();
+}
+
+function updateDarkModeIcon() {
+    const btn = document.getElementById('dark-mode-toggle');
+    if (btn) {
+        btn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
     }
 }
 
