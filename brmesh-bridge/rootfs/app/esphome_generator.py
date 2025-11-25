@@ -18,8 +18,12 @@ class ESPHomeConfigGenerator:
         # Create directory if it doesn't exist
         os.makedirs(self.config_dir, exist_ok=True)
     
-    def generate_controller_config(self, controller: Dict, assigned_lights: List[int]) -> str:
-        """Generate ESPHome YAML config for a controller"""
+    def generate_controller_config(self, controller: Dict) -> str:
+        """Generate ESPHome YAML config for a controller
+        
+        In a mesh network, all controllers can control all lights,
+        so we include all lights in every controller config.
+        """
         controller_name = controller['name'].lower().replace(' ', '-')
         
         config = {
@@ -59,22 +63,20 @@ class ESPHomeConfigGenerator:
             'light': []
         }
         
-        # Add lights assigned to this controller
-        for light_id in assigned_lights:
-            if light_id in self.bridge.lights:
-                light = self.bridge.lights[light_id]
-                light_config = {
-                    'platform': 'fastcon',
-                    'id': f"brmesh_light_{light_id}",
-                    'name': light['name'],
-                    'light_id': light_id,
-                    'color_interlock': light.get('color_interlock', True)
-                }
-                
-                if light.get('supports_cwww'):
-                    light_config['supports_cwww'] = True
-                
-                config['light'].append(light_config)
+        # Add ALL lights - this is a mesh network after all!
+        for light_id, light in self.bridge.lights.items():
+            light_config = {
+                'platform': 'fastcon',
+                'id': f"brmesh_light_{light_id}",
+                'name': light['name'],
+                'light_id': light_id,
+                'color_interlock': light.get('color_interlock', True)
+            }
+            
+            if light.get('supports_cwww'):
+                light_config['supports_cwww'] = True
+            
+            config['light'].append(light_config)
         
         return yaml.dump(config, default_flow_style=False, sort_keys=False)
     
@@ -85,14 +87,8 @@ class ESPHomeConfigGenerator:
         for controller in self.bridge.controllers:
             controller_name = controller['name']
             
-            # Find lights assigned to this controller
-            assigned_lights = []
-            for light_id, light in self.bridge.lights.items():
-                if light.get('preferred_controller') == controller_name:
-                    assigned_lights.append(light_id)
-            
-            # Generate config
-            yaml_config = self.generate_controller_config(controller, assigned_lights)
+            # Generate config with ALL lights (mesh network!)
+            yaml_config = self.generate_controller_config(controller)
             configs[controller_name] = yaml_config
             
             # Save to file
