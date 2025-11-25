@@ -293,7 +293,8 @@ class WebUI:
                     
                     # Update Home Assistant's secrets.yaml
                     try:
-                        if network_id is not None:
+                        # Only use network_id if it's a valid number >= 0
+                        if network_id is not None and network_id >= 0:
                             # Using pre-configured network
                             self._update_ha_secrets(network_id=network_id)
                             logger.info(f"🔐 Using WiFi network #{network_id} from /config/secrets.yaml")
