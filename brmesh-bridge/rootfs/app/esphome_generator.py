@@ -137,9 +137,14 @@ class ESPHomeConfigGenerator:
         # Use Home Assistant's main secrets file
         ha_secrets_path = '/config/secrets.yaml'
         
-        if not os.path.exists(ha_secrets_path):
+        logger.info(f"🔍 Checking for secrets file at: {ha_secrets_path}")
+        file_exists = os.path.exists(ha_secrets_path)
+        logger.info(f"📁 File exists: {file_exists}")
+        
+        if not file_exists:
             # Create basic secrets file if it doesn't exist
             try:
+                logger.info(f"📝 Creating new secrets file...")
                 api_key = self._generate_random_key()
                 ota_pass = self._generate_random_password()
                 secrets = {
@@ -155,12 +160,16 @@ class ESPHomeConfigGenerator:
                 logger.info(f"✅ Created /config/secrets.yaml with generated keys")
                 logger.info(f"🔑 API key length: {len(api_key)}, valid base64: {self._is_valid_base64_key(api_key)}")
             except Exception as e:
-                logger.error(f"Failed to create secrets file: {e}")
+                logger.error(f"Failed to create secrets file: {e}", exc_info=True)
         else:
+            logger.info(f"📖 File exists, validating existing keys...")
             # Check if OTA/API keys exist, add them if missing or invalid
             try:
                 with open(ha_secrets_path, 'r') as f:
                     secrets = yaml.safe_load(f) or {}
+                
+                logger.info(f"📋 Loaded {len(secrets)} keys from secrets.yaml")
+                logger.info(f"🔑 Keys present: {list(secrets.keys())}")
                 
                 updated = False
                 # Generate or replace invalid API encryption key
