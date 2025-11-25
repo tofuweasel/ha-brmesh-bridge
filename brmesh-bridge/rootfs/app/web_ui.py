@@ -685,15 +685,23 @@ class WebUI:
                 with open(secrets_path, 'r') as f:
                     secrets = yaml.load(f) or {}
                 
+                # Get default network ID (0 if not set)
+                default_network_id = secrets.get('default_wifi_network', 0)
+                
                 # Get all wifi network SSIDs (stored as wifi_network_0, wifi_network_1, etc.)
                 networks = []
                 i = 0
                 while f'wifi_network_{i}_ssid' in secrets:
                     networks.append({
                         'id': i,
-                        'ssid': secrets[f'wifi_network_{i}_ssid']
+                        'ssid': secrets[f'wifi_network_{i}_ssid'],
+                        'is_default': (i == default_network_id)
                     })
                     i += 1
+                
+                # If only one network, automatically make it default
+                if len(networks) == 1:
+                    networks[0]['is_default'] = True
                 
                 # Also check for legacy wifi_ssid
                 if 'wifi_ssid' in secrets and not networks:
@@ -830,6 +838,42 @@ class WebUI:
                 return jsonify({'success': True})
             except Exception as e:
                 logger.error(f"Failed to delete WiFi network: {e}")
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/wifi-networks/<int:network_id>/set-default', methods=['POST'])
+        def set_default_wifi_network(network_id):
+            """Set a WiFi network as the default"""
+            try:
+                from ruamel.yaml import YAML
+                from ruamel.yaml.scalarstring import PlainScalarString
+                yaml = YAML()
+                yaml.preserve_quotes = True
+                yaml.default_flow_style = False
+                
+                secrets_path = '/config/secrets.yaml'
+                
+                if not os.path.exists(secrets_path):
+                    return jsonify({'error': 'No WiFi networks configured'}), 404
+                
+                with open(secrets_path, 'r') as f:
+                    secrets = yaml.load(f) or {}
+                
+                # Verify network exists
+                if f'wifi_network_{network_id}_ssid' not in secrets:
+                    return jsonify({'error': 'Network not found'}), 404
+                
+                # Set default
+                secrets['default_wifi_network'] = PlainScalarString(str(network_id))
+                
+                # Save
+                yaml_handler = self._get_yaml_handler()
+                with open(secrets_path, 'w') as f:
+                    yaml_handler.dump(secrets, f)
+                
+                logger.info(f"✅ Set WiFi network {network_id} as default")
+                return jsonify({'success': True})
+            except Exception as e:
+                logger.error(f"Failed to set default WiFi network: {e}")
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/settings/import-app', methods=['POST'])

@@ -97,29 +97,29 @@ class ESPHomeConfigGenerator:
             
             config['light'].append(light_config)
         
-        # Use custom YAML dumper that doesn't quote !secret tags
-        from ruamel.yaml import YAML
-        from ruamel.yaml.scalarstring import PlainScalarString
+        # Use PyYAML with custom representer that doesn't quote !secret tags
+        import yaml
         from io import StringIO
         
-        # Convert !secret strings to plain scalars so they don't get quoted
-        def convert_secrets(obj):
-            if isinstance(obj, dict):
-                return {k: convert_secrets(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_secrets(item) for item in obj]
-            elif isinstance(obj, str) and obj.startswith('!secret '):
-                return PlainScalarString(obj)
-            else:
-                return obj
+        # Custom representer for !secret tags
+        def secret_representer(dumper, data):
+            if isinstance(data, str) and data.startswith('!secret '):
+                # Return the tag without quotes
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='')
+            return dumper.represent_str(data)
         
-        config = convert_secrets(config)
+        # Register custom representer
+        yaml.add_representer(str, secret_representer)
         
-        yaml_handler = YAML()
-        yaml_handler.default_flow_style = False
-        stream = StringIO()
-        yaml_handler.dump(config, stream)
-        return stream.getvalue()
+        # Convert to YAML without quotes on !secret tags
+        yaml_output = yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        
+        # Remove quotes around !secret tags that might still appear
+        import re
+        yaml_output = re.sub(r"'(!secret [^']+)'", r'\1', yaml_output)
+        yaml_output = re.sub(r'"(!secret [^"]+)"', r'\1', yaml_output)
+        
+        return yaml_output
     
     def generate_all_configs(self) -> Dict[str, str]:
         """Generate configs for all controllers"""

@@ -1104,10 +1104,14 @@ async function loadWiFiNetworks() {
             <div class="wifi-network-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px;">
                 <div>
                     <strong>📶 ${net.ssid}</strong>
+                    ${net.is_default ? '<span style="background: #4CAF50; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8em; margin-left: 8px;">DEFAULT</span>' : ''}
                     <br>
                     <small>Network ID: ${net.id}</small>
                 </div>
-                <button class="btn btn-danger btn-sm" onclick="deleteWiFiNetwork(${net.id})">🗑️ Delete</button>
+                <div style="display: flex; gap: 8px;">
+                    ${!net.is_default ? `<button class="btn btn-primary btn-sm" onclick="setDefaultWiFiNetwork(${net.id})">⭐ Set Default</button>` : ''}
+                    <button class="btn btn-danger btn-sm" onclick="deleteWiFiNetwork(${net.id})">🗑️ Delete</button>
+                </div>
             </div>
         `).join('');
     } catch (error) {
@@ -1172,6 +1176,25 @@ async function saveWiFiNetwork() {
     } catch (error) {
         console.error('Failed to save WiFi network:', error);
         showNotification('Failed to save WiFi network: ' + error.message, 'error');
+    }
+}
+
+async function setDefaultWiFiNetwork(index) {
+    try {
+        const response = await fetch(`api/wifi-networks/${index}/set-default`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            showNotification('✅ WiFi network set as default', 'success');
+            await loadWiFiNetworks();
+        } else {
+            const error = await response.json();
+            showNotification('Failed to set default: ' + (error.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Failed to set default WiFi network:', error);
+        showNotification('Failed to set default: ' + error.message, 'error');
     }
 }
 
