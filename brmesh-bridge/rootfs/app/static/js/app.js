@@ -687,11 +687,23 @@ function addExistingController() {
 }
 
 async function saveController() {
+    // Check which modal type is open by looking for specific fields
+    const networkSelector = document.getElementById('wifi-network-selector');
+    const ipField = document.getElementById('controller-ip');
+    
+    // If network selector exists, this is "Generate ESPHome Config" modal
+    if (networkSelector) {
+        return await generateESPHomeController();
+    }
+    
+    // Otherwise, this is "Add Existing Controller" modal
     const name = document.getElementById('controller-name').value.trim();
-    const ip = document.getElementById('controller-ip').value.trim();
-    const mac = document.getElementById('controller-mac').value.trim();
-    const lat = parseFloat(document.getElementById('controller-lat').value);
-    const lon = parseFloat(document.getElementById('controller-lon').value);
+    const ip = ipField ? ipField.value.trim() : '';
+    const mac = document.getElementById('controller-mac')?.value.trim() || '';
+    const latField = document.getElementById('controller-lat');
+    const lonField = document.getElementById('controller-lon');
+    const lat = latField ? parseFloat(latField.value) : NaN;
+    const lon = lonField ? parseFloat(lonField.value) : NaN;
     
     if (!name) {
         showNotification('Please enter a controller name', 'error');
@@ -734,6 +746,88 @@ async function saveController() {
     } catch (error) {
         console.error('Failed to add controller:', error);
         showNotification('Failed to add controller: ' + error.message, 'error');
+    }
+}
+
+async function generateESPHomeController() {
+    const networkSelector = document.getElementById('wifi-network-selector');
+    const selectedNetwork = networkSelector.value;
+    const name = document.getElementById('controller-name').value.trim();
+    
+    let wifiSsid, wifiPassword, networkId;
+    
+    if (selectedNetwork === 'new') {
+        // Using manual WiFi credentials
+        wifiSsid = document.getElementById('wifi-ssid')?.value.trim();
+        wifiPassword = document.getElementById('wifi-password')?.value.trim();
+        
+        // Validate WiFi credentials
+        if (!wifiSsid) {
+            showNotification('Please enter your WiFi SSID', 'error');
+            return;
+        }
+        
+        if (!wifiPassword) {
+            showNotification('Please enter your WiFi password', 'error');
+            return;
+        }
+        
+        networkId = null;
+    } else {
+        // Using pre-configured network
+        networkId = parseInt(selectedNetwork);
+        wifiSsid = null;
+        wifiPassword = null;
+    }
+    
+    const controllerData = {
+        name: name || null,  // Auto-generate if empty
+        wifi_ssid: wifiSsid,
+        wifi_password: wifiPassword,
+        network_id: networkId,
+        generate_esphome: true,  // Generate config for new controller
+        location: null  // Will be set later
+    };
+    
+    try {
+        showNotification('📝 Creating controller and generating configuration...', 'info');
+        
+        const response = await fetch('api/controllers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(controllerData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification(`✅ Controller "${result.name}" created and config generated!`, 'success');
+            document.querySelector('.modal').remove();
+            await loadControllers();
+            
+            // Show build instructions
+            if (result.esphome_path) {
+                const instructions = `
+✅ ESPHome config generated: ${result.esphome_path}
+
+📥 To build and flash firmware:
+
+1. Download the config file from the Controllers tab
+2. Build locally with ESPHome:
+   esphome run ${result.name}.yaml
+3. Follow prompts to flash via USB or OTA
+
+Local builds are faster and more reliable than container builds.
+                `.trim();
+                
+                showNotification(instructions, 'success', 15000);
+            }
+        } else {
+            const error = await response.json();
+            showNotification('Failed to create controller: ' + (error.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Failed to create controller:', error);
+        showNotification('Failed to create controller: ' + error.message, 'error');
     }
 }
 
