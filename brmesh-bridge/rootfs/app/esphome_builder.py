@@ -50,9 +50,9 @@ class ESPHomeBuilder:
             
             # Log full output for debugging
             if result.stdout:
-                logger.debug(f"ESPHome stdout: {result.stdout[-1000:]}")  # Last 1000 chars
+                logger.info(f"ESPHome stdout:\n{result.stdout}")
             if result.stderr:
-                logger.debug(f"ESPHome stderr: {result.stderr[-1000:]}")
+                logger.error(f"ESPHome stderr:\n{result.stderr}")
             
             if result.returncode == 0:
                 # Find the compiled firmware binary
@@ -64,17 +64,18 @@ class ESPHomeBuilder:
                     'output': result.stdout
                 }
             else:
-                logger.error(f"❌ Compilation failed")
+                logger.error(f"❌ Compilation failed with return code: {result.returncode}")
                 
                 # Parse error for helpful message
                 error_msg = result.stderr
-                if "github.com" in error_msg or "Cloning" in error_msg:
-                    error_msg = "Failed to download external component. Check network connectivity and GitHub access."
+                if "github.com" in error_msg or "Cloning" in error_msg or "git" in error_msg.lower():
+                    error_msg = f"Failed to download external component from GitHub. This may be a temporary network issue. Full error: {error_msg}"
                 
                 return {
                     'success': False,
                     'error': error_msg,
-                    'output': result.stdout
+                    'output': result.stdout,
+                    'stderr': result.stderr
                 }
                 
         except subprocess.TimeoutExpired:
