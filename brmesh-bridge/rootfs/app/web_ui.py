@@ -692,9 +692,15 @@ class WebUI:
                 secrets_path = '/config/secrets.yaml'
                 secrets = {}
                 
+                logger.info(f"📁 Checking secrets file at: {secrets_path}")
+                logger.info(f"📁 File exists: {os.path.exists(secrets_path)}")
+                
                 if os.path.exists(secrets_path):
                     with open(secrets_path, 'r') as f:
                         secrets = yaml.safe_load(f) or {}
+                    logger.info(f"📖 Loaded {len(secrets)} existing secrets")
+                else:
+                    logger.info(f"📝 Creating new secrets.yaml file")
                 
                 # Find next available ID
                 i = 0
@@ -705,14 +711,28 @@ class WebUI:
                 secrets[f'wifi_network_{i}_ssid'] = ssid
                 secrets[f'wifi_network_{i}_password'] = password
                 
-                # Save
+                logger.info(f"💾 Saving network with ID {i}: {ssid}")
+                logger.info(f"💾 Total secrets to save: {len(secrets)}")
+                
+                # Save with explicit permissions
                 with open(secrets_path, 'w') as f:
                     yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
                 
-                logger.info(f"✅ Added WiFi network: {ssid}")
+                # Verify it was written
+                if os.path.exists(secrets_path):
+                    with open(secrets_path, 'r') as f:
+                        verify = yaml.safe_load(f) or {}
+                    logger.info(f"✅ Verified: File contains {len(verify)} secrets after save")
+                    if f'wifi_network_{i}_ssid' in verify:
+                        logger.info(f"✅ Added WiFi network: {ssid} (ID: {i})")
+                    else:
+                        logger.error(f"❌ Network not found in file after save!")
+                else:
+                    logger.error(f"❌ secrets.yaml not found after save!")
+                
                 return jsonify({'success': True, 'id': i, 'ssid': ssid})
             except Exception as e:
-                logger.error(f"Failed to add WiFi network: {e}")
+                logger.error(f"Failed to add WiFi network: {e}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/wifi-networks/<int:network_id>', methods=['DELETE'])
