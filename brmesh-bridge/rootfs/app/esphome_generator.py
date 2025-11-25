@@ -143,6 +143,7 @@ class ESPHomeConfigGenerator:
         This only creates OTA and API encryption keys if they don't exist.
         """
         from ruamel.yaml import YAML
+        from ruamel.yaml.scalarstring import PlainScalarString
         yaml = YAML()
         yaml.preserve_quotes = True
         yaml.default_flow_style = False
@@ -190,19 +191,28 @@ class ESPHomeConfigGenerator:
                 api_key = secrets.get('api_encryption_key', '')
                 if not api_key or not self._is_valid_base64_key(api_key):
                     logger.info(f"🔑 Regenerating invalid api_encryption_key (was: {api_key[:20] if api_key else 'missing'}...)")
-                    secrets['api_encryption_key'] = self._generate_random_key()
+                    # Use PlainScalarString to ensure no quotes are added
+                    secrets['api_encryption_key'] = PlainScalarString(self._generate_random_key())
                     updated = True
                 else:
                     logger.info(f"✅ API encryption key is valid (length: {len(api_key)})")
+                    # Ensure existing valid key is also plain scalar (no quotes)
+                    if not isinstance(api_key, PlainScalarString):
+                        secrets['api_encryption_key'] = PlainScalarString(str(api_key))
+                        updated = True
                 
                 # Generate or replace invalid OTA password
                 ota_pass = secrets.get('ota_password', '')
                 if not ota_pass or ota_pass == 'your_ota_password' or len(ota_pass) < 8:
                     logger.info(f"🔑 Regenerating invalid ota_password")
-                    secrets['ota_password'] = self._generate_random_password()
+                    secrets['ota_password'] = PlainScalarString(self._generate_random_password())
                     updated = True
                 else:
                     logger.info(f"✅ OTA password is valid")
+                    # Ensure existing valid password is also plain scalar
+                    if not isinstance(ota_pass, PlainScalarString):
+                        secrets['ota_password'] = PlainScalarString(str(ota_pass))
+                        updated = True
                 
                 if updated:
                     yaml_handler = self._get_yaml_handler()

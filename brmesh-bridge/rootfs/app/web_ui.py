@@ -66,8 +66,10 @@ class WebUI:
             raise ValueError("WiFi SSID and password are required")
         
         # Update default WiFi credentials (used by ESPHome configs)
-        secrets['wifi_ssid'] = wifi_ssid
-        secrets['wifi_password'] = wifi_password
+        # Use PlainScalarString to avoid quotes being added
+        from ruamel.yaml.scalarstring import PlainScalarString
+        secrets['wifi_ssid'] = PlainScalarString(str(wifi_ssid))
+        secrets['wifi_password'] = PlainScalarString(str(wifi_password))
         
         # Add other common secrets if they don't exist (but preserve existing values)
         if 'gateway' not in secrets:
@@ -604,6 +606,7 @@ class WebUI:
                 if mesh_key:
                     try:
                         from ruamel.yaml import YAML
+                        from ruamel.yaml.scalarstring import PlainScalarString
                         yaml = YAML()
                         yaml.preserve_quotes = True
                         yaml.default_flow_style = False
@@ -619,8 +622,8 @@ class WebUI:
                             except Exception as e:
                                 logger.warning(f"Could not read existing secrets.yaml: {e}")
                         
-                        # Update mesh_key in secrets
-                        secrets['mesh_key'] = mesh_key
+                        # Update mesh_key in secrets (use PlainScalarString to avoid quotes)
+                        secrets['mesh_key'] = PlainScalarString(mesh_key)
                         
                         # Save back to file (preserving comments)
                         with open(secrets_path, 'w') as f:
@@ -709,6 +712,7 @@ class WebUI:
             """Add a new WiFi network"""
             try:
                 from ruamel.yaml import YAML
+                from ruamel.yaml.scalarstring import PlainScalarString
                 yaml = YAML()
                 yaml.preserve_quotes = True
                 yaml.default_flow_style = False
@@ -738,9 +742,9 @@ class WebUI:
                 while f'wifi_network_{i}_ssid' in secrets:
                     i += 1
                 
-                # Add new network
-                secrets[f'wifi_network_{i}_ssid'] = ssid
-                secrets[f'wifi_network_{i}_password'] = password
+                # Add new network (use PlainScalarString to avoid quotes)
+                secrets[f'wifi_network_{i}_ssid'] = PlainScalarString(ssid)
+                secrets[f'wifi_network_{i}_password'] = PlainScalarString(password)
                 
                 logger.info(f"💾 Saving network with ID {i}: {ssid}")
                 logger.info(f"💾 Total secrets to save: {len(secrets)}")
@@ -776,6 +780,7 @@ class WebUI:
                     return jsonify({'error': 'Cannot delete legacy WiFi network. This is a read-only entry from wifi_ssid/wifi_password.'}), 400
                 
                 from ruamel.yaml import YAML
+                from ruamel.yaml.scalarstring import PlainScalarString
                 yaml = YAML()
                 yaml.preserve_quotes = True
                 yaml.default_flow_style = False
@@ -811,10 +816,10 @@ class WebUI:
                     secrets.pop(f'wifi_network_{i}_password', None)
                     i += 1
                 
-                # Re-add networks with sequential IDs starting from 0
+                # Re-add networks with sequential IDs starting from 0 (use PlainScalarString)
                 for idx, network in enumerate(networks):
-                    secrets[f'wifi_network_{idx}_ssid'] = network['ssid']
-                    secrets[f'wifi_network_{idx}_password'] = network['password']
+                    secrets[f'wifi_network_{idx}_ssid'] = PlainScalarString(str(network['ssid']))
+                    secrets[f'wifi_network_{idx}_password'] = PlainScalarString(str(network['password']))
                 
                 # Save (preserving comments)
                 yaml_handler = self._get_yaml_handler()
