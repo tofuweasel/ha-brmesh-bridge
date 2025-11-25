@@ -63,7 +63,25 @@ This add-on uses the [esphome-fastcon](https://github.com/scross01/esphome-fastc
 
 ## Support
 
-If you find this add-on useful, please consider starring the repository!
+If you find this add-on useful, please consider starring the repository! ⭐
+
+### Support Development
+
+This project is developed and maintained in my spare time. If you'd like to support continued development and new features:
+
+<a href="https://www.buymeacoffee.com/tofuweasel" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/tofuweasel)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tofuweasel)
+
+Every contribution helps keep the lights on (literally! 💡) and enables me to:
+- Add new features
+- Fix bugs faster
+- Test with more hardware
+- Write better documentation
+- Create video tutorials
+
+### Issues & Feature Requests
 
 For issues and feature requests, please use the [GitHub issue tracker](https://github.com/tofuweasel/ha-brmesh-bridge/issues).
 

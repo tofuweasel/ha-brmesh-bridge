@@ -460,6 +460,19 @@ header h1 {
 .controller-info {
     font-size: 0.9rem;
     color: #666;
+    margin-bottom: 15px;
+}
+
+.controller-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.controller-actions .btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.85rem;
 }
 
 .signal-matrix {

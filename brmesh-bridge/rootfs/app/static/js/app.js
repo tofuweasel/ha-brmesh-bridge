@@ -496,7 +496,8 @@ function renderControllers() {
         const card = document.createElement('div');
         card.className = 'controller-card';
         
-        // Don't show online status - we don't actually check connectivity
+        const controllerName = controller.name.toLowerCase().replace(/ /g, '-');
+        
         card.innerHTML = `
             <div class="controller-status">
                 <strong>${controller.name}</strong>
@@ -505,6 +506,11 @@ function renderControllers() {
                 <div>IP: ${controller.ip}</div>
                 <div>MAC: ${controller.mac || 'N/A'}</div>
                 <div>Location: (${controller.location?.x || 0}, ${controller.location?.y || 0})</div>
+            </div>
+            <div class="controller-actions">
+                <button class="btn btn-primary" onclick="buildFirmware('${controllerName}')">🔨 Build</button>
+                <button class="btn btn-success" onclick="flashFirmware('${controllerName}')">⚡ Flash</button>
+                <button class="btn btn-secondary" onclick="buildAndFlash('${controllerName}')">🚀 Build & Flash</button>
             </div>
         `;
         
@@ -1033,6 +1039,173 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.style.display = 'none';
     }, 5000);
+}
+
+// ESP32 Build & Flash Functions
+async function buildFirmware(controllerName) {
+    const buildBtn = event.target;
+    const originalText = buildBtn.textContent;
+    
+    try {
+        buildBtn.disabled = true;
+        buildBtn.textContent = '🔨 Building...';
+        showNotification(`Building firmware for ${controllerName}... This may take 5-10 minutes.`, 'info');
+        
+        const response = await fetch(`api/esphome/build/${controllerName}`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ Firmware built successfully! Ready to flash.`, 'success');
+        } else {
+            showNotification(`❌ Build failed: ${result.error}`, 'error');
+            console.error('Build output:', result.output);
+        }
+    } catch (error) {
+        console.error('Build error:', error);
+        showNotification(`❌ Build failed: ${error.message}`, 'error');
+    } finally {
+        buildBtn.disabled = false;
+        buildBtn.textContent = originalText;
+    }
+}
+
+async function flashFirmware(controllerName) {
+    const flashBtn = event.target;
+    const originalText = flashBtn.textContent;
+    
+    try {
+        // Get available serial ports
+        const portsResponse = await fetch('api/esphome/ports');
+        const portsData = await portsResponse.json();
+        
+        let port = 'auto';
+        if (portsData.ports && portsData.ports.length > 0) {
+            // Show port selection dialog
+            port = await showPortSelectionDialog(portsData.ports);
+            if (!port) return; // User cancelled
+        }
+        
+        flashBtn.disabled = true;
+        flashBtn.textContent = '⚡ Flashing...';
+        showNotification(`Flashing firmware to ${controllerName}... Keep ESP32 connected!`, 'info');
+        
+        const response = await fetch(`api/esphome/flash/${controllerName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ Firmware flashed successfully! ESP32 is rebooting.`, 'success');
+        } else {
+            showNotification(`❌ Flash failed: ${result.error}`, 'error');
+            console.error('Flash output:', result.output);
+        }
+    } catch (error) {
+        console.error('Flash error:', error);
+        showNotification(`❌ Flash failed: ${error.message}`, 'error');
+    } finally {
+        flashBtn.disabled = false;
+        flashBtn.textContent = originalText;
+    }
+}
+
+async function buildAndFlash(controllerName) {
+    const btn = event.target;
+    const originalText = btn.textContent;
+    
+    try {
+        btn.disabled = true;
+        btn.textContent = '🚀 Building...';
+        
+        // First, build
+        showNotification(`Building firmware for ${controllerName}...`, 'info');
+        const buildResponse = await fetch(`api/esphome/build/${controllerName}`, {
+            method: 'POST'
+        });
+        const buildResult = await buildResponse.json();
+        
+        if (!buildResult.success) {
+            showNotification(`❌ Build failed: ${buildResult.error}`, 'error');
+            return;
+        }
+        
+        btn.textContent = '🚀 Flashing...';
+        
+        // Get port
+        const portsResponse = await fetch('api/esphome/ports');
+        const portsData = await portsResponse.json();
+        let port = 'auto';
+        if (portsData.ports && portsData.ports.length > 0) {
+            port = await showPortSelectionDialog(portsData.ports);
+            if (!port) return;
+        }
+        
+        // Then, flash
+        showNotification(`Flashing firmware to ${controllerName}...`, 'info');
+        const flashResponse = await fetch(`api/esphome/flash/${controllerName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port })
+        });
+        const flashResult = await flashResponse.json();
+        
+        if (flashResult.success) {
+            showNotification(`✅ Build & Flash complete! ESP32 is ready.`, 'success');
+        } else {
+            showNotification(`❌ Flash failed: ${flashResult.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Build & flash error:', error);
+        showNotification(`❌ Failed: ${error.message}`, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+function showPortSelectionDialog(ports) {
+    return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        
+        const portOptions = ports.map(port => 
+            `<label style="display: block; margin: 10px 0;">
+                <input type="radio" name="port" value="${port}"> ${port}
+            </label>`
+        ).join('');
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h2>Select Serial Port</h2>
+                <p>Choose the USB port where your ESP32 is connected:</p>
+                <div style="margin: 20px 0;">
+                    ${portOptions}
+                    <label style="display: block; margin: 10px 0;">
+                        <input type="radio" name="port" value="auto" checked> Auto-detect
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove(); window.portSelected(null)">Cancel</button>
+                    <button class="btn btn-primary" onclick="window.portSelected(document.querySelector('input[name=port]:checked').value)">Continue</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        window.portSelected = (port) => {
+            modal.remove();
+            delete window.portSelected;
+            resolve(port);
+        };
+    });
 }
 
 // Dark mode functionality
