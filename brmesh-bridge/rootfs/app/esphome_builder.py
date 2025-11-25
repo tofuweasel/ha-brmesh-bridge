@@ -36,14 +36,23 @@ class ESPHomeBuilder:
         
         try:
             logger.info(f"🔨 Compiling firmware for {controller_name}...")
+            logger.info(f"📄 Config file: {yaml_file}")
+            logger.info("⏳ This may take 5-10 minutes for first build (downloading external components)...")
             
-            # Run ESPHome compile command
+            # Run ESPHome compile command with verbose output
             result = subprocess.run(
-                ['esphome', 'compile', yaml_file],
+                ['esphome', 'compile', yaml_file, '--verbose'],
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minute timeout
+                timeout=900,  # 15 minute timeout for first build
+                env={**os.environ, 'PLATFORMIO_CORE_DIR': '/config/.platformio'}
             )
+            
+            # Log full output for debugging
+            if result.stdout:
+                logger.debug(f"ESPHome stdout: {result.stdout[-1000:]}")  # Last 1000 chars
+            if result.stderr:
+                logger.debug(f"ESPHome stderr: {result.stderr[-1000:]}")
             
             if result.returncode == 0:
                 # Find the compiled firmware binary
@@ -55,16 +64,22 @@ class ESPHomeBuilder:
                     'output': result.stdout
                 }
             else:
-                logger.error(f"❌ Compilation failed: {result.stderr}")
+                logger.error(f"❌ Compilation failed")
+                
+                # Parse error for helpful message
+                error_msg = result.stderr
+                if "github.com" in error_msg or "Cloning" in error_msg:
+                    error_msg = "Failed to download external component. Check network connectivity and GitHub access."
+                
                 return {
                     'success': False,
-                    'error': result.stderr,
+                    'error': error_msg,
                     'output': result.stdout
                 }
                 
         except subprocess.TimeoutExpired:
             logger.error("⏱️ Compilation timeout")
-            return {'success': False, 'error': 'Compilation timeout (10 minutes)'}
+            return {'success': False, 'error': 'Compilation timeout (15 minutes). First build may take longer.'}
         except Exception as e:
             logger.error(f"❌ Compilation error: {e}")
             return {'success': False, 'error': str(e)}
