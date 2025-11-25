@@ -39,13 +39,22 @@ class ESPHomeBuilder:
             logger.info(f"📄 Config file: {yaml_file}")
             logger.info("⏳ This may take 5-10 minutes for first build (downloading external components)...")
             
-            # Run ESPHome compile command (no --verbose flag, it's not supported in this version)
+            # Run ESPHome compile command with extended git timeout settings
+            env = {
+                **os.environ,
+                'PLATFORMIO_CORE_DIR': '/config/.platformio',
+                'GIT_HTTP_LOW_SPEED_LIMIT': '0',
+                'GIT_HTTP_LOW_SPEED_TIME': '999999',
+                'GIT_CURL_VERBOSE': '1',
+                'GIT_TRACE': '1'
+            }
+            
             result = subprocess.run(
                 ['esphome', 'compile', yaml_file],
                 capture_output=True,
                 text=True,
-                timeout=900,  # 15 minute timeout for first build
-                env={**os.environ, 'PLATFORMIO_CORE_DIR': '/config/.platformio'}
+                timeout=1200,  # 20 minute timeout for first build with slow git clone
+                env=env
             )
             
             # Log full output for debugging
@@ -80,7 +89,7 @@ class ESPHomeBuilder:
                 
         except subprocess.TimeoutExpired:
             logger.error("⏱️ Compilation timeout")
-            return {'success': False, 'error': 'Compilation timeout (15 minutes). First build may take longer.'}
+            return {'success': False, 'error': 'Compilation timeout (20 minutes). The external component download may be failing due to network issues. Check your internet connection and GitHub accessibility.'}
         except Exception as e:
             logger.error(f"❌ Compilation error: {e}")
             return {'success': False, 'error': str(e)}
