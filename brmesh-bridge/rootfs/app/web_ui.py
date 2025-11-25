@@ -60,11 +60,12 @@ class WebUI:
         secrets['wifi_ssid'] = wifi_ssid
         secrets['wifi_password'] = wifi_password
         
-        # Add other common secrets if they don't exist
+        # Add other common secrets if they don't exist (but preserve existing values)
         if 'gateway' not in secrets:
             secrets['gateway'] = '192.168.1.1'
         if 'subnet' not in secrets:
             secrets['subnet'] = '255.255.255.0'
+        # Don't overwrite api_encryption_key or ota_password - they should be preserved
         
         # Save back to file
         with open(secrets_path, 'w') as f:
@@ -287,6 +288,10 @@ class WebUI:
                 
                 # Handle WiFi secrets for new controllers
                 if controller_data.get('generate_esphome'):
+                    # First ensure secrets.yaml has valid encryption keys
+                    if self.bridge.esphome_generator:
+                        self.bridge.esphome_generator.save_secrets_template()
+                    
                     network_id = controller_data.pop('network_id', None)
                     wifi_ssid = controller_data.pop('wifi_ssid', None)
                     wifi_password = controller_data.pop('wifi_password', None)
@@ -316,9 +321,6 @@ class WebUI:
                 # Generate ESPHome config if requested
                 esphome_path = None
                 if controller_data.get('generate_esphome') and self.bridge.esphome_generator:
-                    # Ensure secrets.yaml has valid encryption keys before generating config
-                    self.bridge.esphome_generator.save_secrets_template()
-                    
                     # All controllers get all lights in a mesh network
                     yaml_config = self.bridge.esphome_generator.generate_controller_config(controller_data)
                     
