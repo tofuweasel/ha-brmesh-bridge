@@ -550,9 +550,9 @@ function addController() {
             <div class="form-group">
                 <h3>Location (for signal optimization)</h3>
                 <label for="controller-lat">Latitude:</label>
-                <input type="number" id="controller-lat" step="0.000001" placeholder="41.0199" />
+                <input type="number" id="controller-lat" step="0.000001" placeholder="41.0199" value="${config.map_latitude || ''}" />
                 <label for="controller-lon">Longitude:</label>
-                <input type="number" id="controller-lon" step="0.000001" placeholder="-73.8286" />
+                <input type="number" id="controller-lon" step="0.000001" placeholder="-73.8286" value="${config.map_longitude || ''}" />
                 <small>Click on the map to set location automatically</small>
             </div>
             
@@ -694,6 +694,7 @@ function updateMapMarkers() {
         controllers.forEach(controller => {
             if (controller.location?.x !== null && controller.location?.y !== null) {
                 const marker = L.marker([controller.location.y, controller.location.x], {
+                    draggable: true,
                     icon: L.divIcon({
                         className: 'controller-marker',
                         html: '📡',
@@ -702,6 +703,11 @@ function updateMapMarkers() {
                 }).addTo(map);
                 
                 marker.bindPopup(`<b>${controller.name}</b><br>IP: ${controller.ip}`);
+                
+                marker.on('dragend', async (e) => {
+                    const pos = e.target.getLatLng();
+                    await updateControllerLocation(controller.id, pos.lng, pos.lat);
+                });
                 
                 controllerMarkers[controller.name] = marker;
             }
@@ -718,6 +724,20 @@ async function updateLightLocation(lightId, x, y) {
         });
     } catch (error) {
         console.error('Failed to update light location:', error);
+    }
+}
+
+async function updateControllerLocation(controllerId, x, y) {
+    try {
+        await fetch(`api/controllers/${controllerId}/location`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ x, y })
+        });
+        showNotification('Controller location updated', 'success');
+    } catch (error) {
+        console.error('Failed to update controller location:', error);
+        showNotification('Failed to update controller location', 'error');
     }
 }
 

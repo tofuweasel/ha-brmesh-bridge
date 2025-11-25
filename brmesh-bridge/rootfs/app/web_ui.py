@@ -97,6 +97,32 @@ class WebUI:
             # This would query the ESP32 for RSSI values
             return jsonify(self.bridge.get_controller_signal_map(controller_name))
         
+        @app.route('/api/controllers/<controller_id>/location', methods=['PUT'])
+        def update_controller_location(controller_id):
+            """Update controller location on map"""
+            try:
+                data = request.json
+                x = data.get('x')
+                y = data.get('y')
+                
+                if x is None or y is None:
+                    return jsonify({'success': False, 'error': 'x and y coordinates required'}), 400
+                
+                # Update controller location in config
+                if 'controllers' not in self.bridge.config:
+                    self.bridge.config['controllers'] = []
+                
+                for controller in self.bridge.config['controllers']:
+                    if controller.get('id') == controller_id or controller.get('name') == controller_id:
+                        controller['location'] = {'x': x, 'y': y}
+                        self.bridge.save_config()
+                        return jsonify({'success': True})
+                
+                return jsonify({'success': False, 'error': 'Controller not found'}), 404
+                
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+        
         @app.route('/api/effects', methods=['GET'])
         def list_effects():
             """List available effects"""
