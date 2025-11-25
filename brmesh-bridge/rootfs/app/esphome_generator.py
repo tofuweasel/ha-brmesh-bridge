@@ -64,9 +64,8 @@ class ESPHomeConfigGenerator:
                 'level': 'INFO'
             },
             'external_components': [{
-                'source': 'https://github.com/scross01/esphome-fastcon/archive/refs/heads/main.zip',
-                'components': ['fastcon'],
-                'refresh': '1d'  # Cache for 1 day to avoid repeated downloads
+                'source': '/app/external_components',
+                'components': ['fastcon']
             }],
             'esp32_ble_server': {},
             'fastcon': {

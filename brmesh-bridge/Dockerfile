@@ -25,6 +25,13 @@ RUN git config --global http.postBuffer 524288000 && \
     git config --global http.lowSpeedLimit 0 && \
     git config --global http.lowSpeedTime 999999
 
+# Download esphome-fastcon component to bundle with addon
+RUN wget -O /tmp/fastcon.zip https://github.com/scross01/esphome-fastcon/archive/refs/heads/main.zip && \
+    unzip /tmp/fastcon.zip -d /tmp && \
+    mkdir -p /app/external_components && \
+    mv /tmp/esphome-fastcon-main/components/fastcon /app/external_components/ && \
+    rm -rf /tmp/fastcon.zip /tmp/esphome-fastcon-main
+
 # Install Python packages
 # Install ESPHome first to lock in its dependency versions (including paho-mqtt 1.6.1)
 RUN pip3 install --break-system-packages --no-cache-dir \
