@@ -153,20 +153,51 @@ class WebUI:
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/scenes', methods=['POST'])
+        def create_scene():
+            """Create a new scene"""
+            try:
+                scene_data = request.json
+                # Save scene to config
+                self.bridge.config.setdefault('scenes', []).append(scene_data)
+                self.bridge.save_config()
+                return jsonify({'success': True})
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
         @app.route('/api/scenes/<scene_name>', methods=['POST'])
         def apply_scene(scene_name):
             """Apply a saved scene"""
             try:
-                with open('/data/options.json', 'r') as f:
-                    config = json.load(f)
-                
-                scenes = config.get('scenes', [])
+                scenes = self.bridge.config.get('scenes', [])
                 scene = next((s for s in scenes if s['name'] == scene_name), None)
                 
                 if scene:
                     self.bridge.effects.apply_scene(scene)
                     return jsonify({'success': True})
                 return jsonify({'error': 'Scene not found'}), 404
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/controllers', methods=['POST'])
+        def add_controller():
+            """Add a new ESP32 controller"""
+            try:
+                controller_data = request.json
+                # Generate unique ID
+                controller_id = len(self.bridge.config.get('controllers', [])) + 1
+                controller_data['id'] = controller_id
+                
+                # Add to config
+                self.bridge.config.setdefault('controllers', []).append(controller_data)
+                self.bridge.save_config()
+                
+                # Generate ESPHome config if requested
+                esphome_path = None
+                if controller_data.get('generate_esphome') and self.bridge.esphome_generator:
+                    esphome_path = self.bridge.esphome_generator.generate_controller_config(controller_data)
+                
+                return jsonify({'success': True, 'id': controller_id, 'esphome_path': esphome_path})
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
