@@ -87,7 +87,7 @@ function setupModals() {
 // API Functions
 async function loadConfig() {
     try {
-        const response = await fetch('/api/config');
+        const response = await fetch('api/config');
         config = await response.json();
     } catch (error) {
         console.error('Failed to load config:', error);
@@ -96,7 +96,7 @@ async function loadConfig() {
 
 async function loadLights() {
     try {
-        const response = await fetch('/api/lights');
+        const response = await fetch('api/lights');
         lights = await response.json();
         renderLights();
         renderLightSelectors();
@@ -108,7 +108,7 @@ async function loadLights() {
 
 async function loadControllers() {
     try {
-        const response = await fetch('/api/controllers');
+        const response = await fetch('api/controllers');
         controllers = await response.json();
         renderControllers();
         updateMapMarkers();
@@ -119,7 +119,7 @@ async function loadControllers() {
 
 async function loadEffects() {
     try {
-        const response = await fetch('/api/effects');
+        const response = await fetch('api/effects');
         const effects = await response.json();
         renderEffects(effects);
     } catch (error) {
@@ -129,7 +129,7 @@ async function loadEffects() {
 
 async function loadScenes() {
     try {
-        const response = await fetch('/api/scenes');
+        const response = await fetch('api/scenes');
         const scenes = await response.json();
         renderScenes(scenes);
     } catch (error) {
@@ -322,7 +322,7 @@ async function startEffect(effectName) {
 
 async function stopAllEffects() {
     try {
-        await fetch('/api/effects/stop', {
+        await fetch('api/effects/stop', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
@@ -525,7 +525,7 @@ function hexToRgb(hex) {
 
 async function scanForLights() {
     try {
-        const response = await fetch('/api/scan', { method: 'POST' });
+        const response = await fetch('api/scan', { method: 'POST' });
         const result = await response.json();
         alert(`Found ${result.lights?.length || 0} new lights`);
         await loadLights();
@@ -542,7 +542,7 @@ async function refreshAll() {
 // Settings Management
 async function loadSettings() {
     try {
-        const response = await fetch('/api/settings');
+        const response = await fetch('api/settings');
         const settings = await response.json();
         
         // Core settings
@@ -605,7 +605,7 @@ async function saveSettings() {
             app_config_path: document.getElementById('app-config-path').value
         };
         
-        const response = await fetch('/api/settings', {
+        const response = await fetch('api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(settings)
@@ -649,7 +649,7 @@ async function resetSettings() {
     if (!confirm('Reset all settings to defaults? This will restart the add-on.')) return;
     
     try {
-        const response = await fetch('/api/settings/reset', { method: 'POST' });
+        const response = await fetch('api/settings/reset', { method: 'POST' });
         if (response.ok) {
             showNotification('Settings reset! Restarting...', 'success');
             setTimeout(() => location.reload(), 2000);
@@ -664,7 +664,7 @@ async function resetSettings() {
 
 async function importFromApp() {
     try {
-        const response = await fetch('/api/settings/import-app', { method: 'POST' });
+        const response = await fetch('api/settings/import-app', { method: 'POST' });
         const result = await response.json();
         
         if (response.ok) {
@@ -693,7 +693,7 @@ async function importFromAppHeader() {
     
     try {
         showNotification('Importing from BRMesh app...', 'info');
-        const response = await fetch('/api/settings/import-app', { method: 'POST' });
+        const response = await fetch('api/settings/import-app', { method: 'POST' });
         const result = await response.json();
         
         if (response.ok) {
@@ -718,7 +718,7 @@ async function importFromAppHeader() {
 
 async function exportConfig() {
     try {
-        const response = await fetch('/api/settings/export');
+        const response = await fetch('api/settings/export');
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
