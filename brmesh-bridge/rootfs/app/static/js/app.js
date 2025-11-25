@@ -536,14 +536,24 @@ function renderControllers() {
         
         const controllerName = controller.name.toLowerCase().replace(/ /g, '-');
         
+        // Determine status badges
+        const hasConfig = controller.esphome_path ? '✅ Config' : '❌ No Config';
+        const hasIP = controller.ip ? '🟢 Online' : '🔴 Offline';
+        const builtStatus = controller.esphome_path ? '📦 Ready for Build' : '';
+        
         card.innerHTML = `
             <div class="controller-status">
                 <strong>${controller.name}</strong>
+                <div style="margin-top: 5px; font-size: 0.85em;">
+                    <span style="margin-right: 10px;">${hasConfig}</span>
+                    <span style="margin-right: 10px;">${hasIP}</span>
+                    ${builtStatus ? `<span>${builtStatus}</span>` : ''}
+                </div>
             </div>
             <div class="controller-info">
-                <div>IP: ${controller.ip}</div>
+                <div>IP: ${controller.ip || 'Not configured'}</div>
                 <div>MAC: ${controller.mac || 'N/A'}</div>
-                <div>Location: (${controller.location?.x || 0}, ${controller.location?.y || 0})</div>
+                ${controller.esphome_path ? `<div>📄 ${controller.esphome_path}</div>` : ''}
             </div>
             <div class="controller-actions">
                 <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
@@ -646,7 +656,23 @@ function toggleWiFiInputs() {
     }
 }
 
-function addExistingController() {
+async function addExistingController() {
+    // Load ESPHome devices first
+    let esphomeDevices = [];
+    try {
+        const response = await fetch('api/esphome/devices');
+        const data = await response.json();
+        esphomeDevices = data.devices || [];
+    } catch (error) {
+        console.error('Failed to load ESPHome devices:', error);
+        esphomeDevices = [];
+    }
+    
+    // Build device selector options - show all ESPHome devices
+    const deviceOptions = esphomeDevices.map((device) => 
+        `<option value="${device.name}">🔧 ${device.name}</option>`
+    ).join('');
+    
     // Create modal for adding an already-configured ESP32
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -655,31 +681,34 @@ function addExistingController() {
         <div class="modal-content">
             <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
             <h2>➕ Add Existing Controller</h2>
-            <p>Add an ESP32 controller that is already configured and running ESPHome firmware.</p>
+            <p>Import an ESP32 controller from ESPHome or add manually.</p>
             
+            ${deviceOptions ? `
             <div class="form-group">
-                <label for="controller-name">Controller Name:</label>
-                <input type="text" id="controller-name" placeholder="e.g., Front Yard, Backyard, Garage" />
-            </div>
+                <label for="esphome-device-selector">Select from ESPHome:</label>
+                <select id="esphome-device-selector" onchange="toggleManualInputs()">
+                    <option value="">📋 Choose ESPHome Device...</option>
+                    ${deviceOptions}
+                    <option value="manual">✍️ Enter Manually</option>
+                </select>
+            </div>` : ''}
             
-            <div class="form-group">
-                <label for="controller-ip">Controller IP Address:</label>
-                <input type="text" id="controller-ip" placeholder="192.168.1.100" />
-                <small>Leave blank for auto-discovery</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="controller-mac">MAC Address (Optional):</label>
-                <input type="text" id="controller-mac" placeholder="AA:BB:CC:DD:EE:FF" />
-            </div>
-            
-            <div class="form-group">
-                <h3>Location (for signal optimization)</h3>
-                <label for="controller-lat">Latitude:</label>
-                <input type="number" id="controller-lat" step="0.000001" placeholder="41.0199" value="${config.map_latitude || ''}" />
-                <label for="controller-lon">Longitude:</label>
-                <input type="number" id="controller-lon" step="0.000001" placeholder="-73.8286" value="${config.map_longitude || ''}" />
-                <small>Click on the map to set location automatically</small>
+            <div id="manual-controller-inputs" style="${deviceOptions ? 'display:none;' : ''}">
+                <div class="form-group">
+                    <label for="controller-name">Controller Name:</label>
+                    <input type="text" id="controller-name" placeholder="e.g., brmesh-bridge" />
+                </div>
+                
+                <div class="form-group">
+                    <label for="controller-ip">Controller IP Address:</label>
+                    <input type="text" id="controller-ip" placeholder="192.168.1.100" />
+                    <small>Leave blank for auto-discovery</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="controller-mac">MAC Address (Optional):</label>
+                    <input type="text" id="controller-mac" placeholder="AA:BB:CC:DD:EE:FF" />
+                </div>
             </div>
             
             <div class="modal-buttons">
@@ -689,6 +718,25 @@ function addExistingController() {
         </div>
     `;
     document.body.appendChild(modal);
+}
+
+function toggleManualInputs() {
+    const selector = document.getElementById('esphome-device-selector');
+    const manualInputs = document.getElementById('manual-controller-inputs');
+    const nameInput = document.getElementById('controller-name');
+    
+    if (selector && manualInputs) {
+        const selectedValue = selector.value;
+        
+        if (selectedValue === 'manual' || selectedValue === '') {
+            manualInputs.style.display = 'block';
+            if (nameInput) nameInput.value = '';
+        } else {
+            manualInputs.style.display = 'none';
+            // Pre-fill name from selected ESPHome device
+            if (nameInput) nameInput.value = selectedValue;
+        }
+    }
 }
 
 async function saveController() {
@@ -702,7 +750,14 @@ async function saveController() {
     }
     
     // Otherwise, this is "Add Existing Controller" modal
-    const name = document.getElementById('controller-name').value.trim();
+    const esphomeSelector = document.getElementById('esphome-device-selector');
+    let name = document.getElementById('controller-name')?.value.trim() || '';
+    
+    // If ESPHome device selected, use that name
+    if (esphomeSelector && esphomeSelector.value && esphomeSelector.value !== 'manual') {
+        name = esphomeSelector.value;
+    }
+    
     const ip = ipField ? ipField.value.trim() : '';
     const mac = document.getElementById('controller-mac')?.value.trim() || '';
     const latField = document.getElementById('controller-lat');
@@ -711,7 +766,7 @@ async function saveController() {
     const lon = lonField ? parseFloat(lonField.value) : NaN;
     
     if (!name) {
-        showNotification('Please enter a controller name', 'error');
+        showNotification('Please select a device or enter a controller name', 'error');
         return;
     }
     

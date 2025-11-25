@@ -349,6 +349,9 @@ class WebUI:
                         with open(filepath, 'w') as f:
                             f.write(yaml_config)
                         esphome_path = filepath
+                        # Store esphome_path in controller data
+                        controller_data['esphome_path'] = esphome_path
+                        self.bridge.save_config()  # Save again with esphome_path
                         logger.info(f"📝 Generated ESPHome config: {filepath}")
                     except Exception as e:
                         logger.error(f"Failed to write ESPHome config: {e}")
@@ -363,6 +366,28 @@ class WebUI:
             except Exception as e:
                 logger.error(f"❌ Error adding controller: {str(e)}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/esphome/devices')
+        def get_esphome_devices():
+            """Get list of ESPHome devices from /config/esphome/*.yaml"""
+            try:
+                esphome_dir = '/config/esphome'
+                devices = []
+                
+                if os.path.exists(esphome_dir):
+                    for filename in os.listdir(esphome_dir):
+                        if filename.endswith('.yaml') and filename != 'secrets.yaml':
+                            device_name = filename[:-5]  # Remove .yaml extension
+                            devices.append({
+                                'name': device_name,
+                                'filename': filename,
+                                'path': os.path.join(esphome_dir, filename)
+                            })
+                
+                return jsonify({'devices': devices})
+            except Exception as e:
+                logger.error(f"Failed to list ESPHome devices: {e}")
+                return jsonify({'error': str(e), 'devices': []}), 500
         
         @app.route('/api/map/satellite')
         def get_satellite_map():
@@ -440,6 +465,39 @@ class WebUI:
                     'configs': configs,
                     'count': len(configs)
                 })
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/esphome/devices')
+        def get_esphome_devices():
+            """Get list of ESPHome devices from /config/esphome/*.yaml"""
+            try:
+                esphome_dir = '/config/esphome'
+                devices = []
+                
+                if os.path.exists(esphome_dir):
+                    for filename in os.listdir(esphome_dir):
+                        if filename.endswith('.yaml') and filename != 'secrets.yaml':
+                            filepath = os.path.join(esphome_dir, filename)
+                            device_name = filename[:-5]  # Remove .yaml extension
+                            
+                            # Try to read the YAML to get device info
+                            try:
+                                with open(filepath, 'r') as f:
+                                    content = f.read()
+                                    # Basic parsing to check if it's a BRMesh controller
+                                    is_brmesh = 'fastcon:' in content
+                                    
+                                devices.append({
+                                    'name': device_name,
+                                    'filename': filename,
+                                    'path': filepath,
+                                    'is_brmesh': is_brmesh
+                                })
+                            except Exception as e:
+                                logger.warning(f"Could not read ESPHome config {filename}: {e}")
+                
+                return jsonify({'devices': devices})
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
