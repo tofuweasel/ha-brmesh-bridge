@@ -544,7 +544,8 @@ class WebUI:
                     options = json.load(f)
                 
                 # Update all settings
-                options['mesh_key'] = settings.get('mesh_key', options.get('mesh_key', ''))
+                mesh_key = settings.get('mesh_key', options.get('mesh_key', ''))
+                options['mesh_key'] = mesh_key
                 options['use_addon_mqtt'] = settings.get('use_addon_mqtt', True)
                 
                 if not options['use_addon_mqtt']:
@@ -571,8 +572,34 @@ class WebUI:
                 
                 # Update runtime config immediately (so it persists when save_config() is called)
                 self.bridge.config.update(options)
-                self.bridge.mesh_key = options['mesh_key']
+                self.bridge.mesh_key = mesh_key
                 logger.info(f"🔑 Updated mesh key: {self.bridge.mesh_key}")
+                
+                # Also save mesh_key to secrets.yaml for ESPHome configs
+                if mesh_key:
+                    try:
+                        import yaml
+                        secrets_path = '/config/secrets.yaml'
+                        secrets = {}
+                        
+                        # Load existing secrets if file exists
+                        if os.path.exists(secrets_path):
+                            try:
+                                with open(secrets_path, 'r') as f:
+                                    secrets = yaml.safe_load(f) or {}
+                            except Exception as e:
+                                logger.warning(f"Could not read existing secrets.yaml: {e}")
+                        
+                        # Update mesh_key in secrets
+                        secrets['mesh_key'] = mesh_key
+                        
+                        # Save back to file
+                        with open(secrets_path, 'w') as f:
+                            yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                        
+                        logger.info(f"✅ Saved mesh key to /config/secrets.yaml")
+                    except Exception as e:
+                        logger.error(f"Failed to save mesh key to secrets.yaml: {e}")
                 
                 # Save to ensure mesh_key is persisted in the lights/controllers config
                 self.bridge.save_config()
