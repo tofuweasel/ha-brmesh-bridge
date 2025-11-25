@@ -52,10 +52,7 @@ RUN pip3 install --break-system-packages --no-cache-dir \
 ENV PLATFORMIO_CORE_DIR=/config/.platformio
 ENV PLATFORMIO_GLOBALLIB_DIR=/config/.platformio/lib
 ENV PIO_INSTALL_DEVPLATFORM_SILENT=yes
-ENV PLATFORMIO_NO_SYSTEM_SITEPACKAGES=false
-
-# Initialize PlatformIO to cache platform files
-RUN pio platform install espressif32@5.3.0 || true
+ENV PLATFORMIO_SYSTEM_SITE_PACKAGES=yes
 
 # Copy addon files
 COPY rootfs /
