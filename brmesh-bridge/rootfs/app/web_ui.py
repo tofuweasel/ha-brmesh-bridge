@@ -26,7 +26,7 @@ class WebUI:
         self.bridge = bridge
         self.setup_routes()
     
-    def _update_ha_secrets(self, wifi_ssid, wifi_password, network_id=None):
+    def _update_ha_secrets(self, wifi_ssid=None, wifi_password=None, network_id=None):
         """Update Home Assistant's secrets.yaml with WiFi credentials
         
         If network_id is provided, uses that specific network from the list.
@@ -47,8 +47,14 @@ class WebUI:
         
         # If network_id provided, get credentials from that network
         if network_id is not None:
-            wifi_ssid = secrets.get(f'wifi_network_{network_id}_ssid', wifi_ssid)
-            wifi_password = secrets.get(f'wifi_network_{network_id}_password', wifi_password)
+            wifi_ssid = secrets.get(f'wifi_network_{network_id}_ssid')
+            wifi_password = secrets.get(f'wifi_network_{network_id}_password')
+            if not wifi_ssid or not wifi_password:
+                raise ValueError(f"WiFi network {network_id} not found in secrets.yaml")
+        
+        # Validate we have credentials
+        if not wifi_ssid or not wifi_password:
+            raise ValueError("WiFi SSID and password are required")
         
         # Update default WiFi credentials (used by ESPHome configs)
         secrets['wifi_ssid'] = wifi_ssid
