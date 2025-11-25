@@ -26,22 +26,31 @@ class WebUI:
         self.bridge = bridge
         self.setup_routes()
     
+    def _get_yaml_handler(self):
+        """Get ruamel.yaml instance configured to preserve comments"""
+        from ruamel.yaml import YAML
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        yaml.default_flow_style = False
+        return yaml
+    
     def _update_ha_secrets(self, wifi_ssid=None, wifi_password=None, network_id=None):
         """Update Home Assistant's secrets.yaml with WiFi credentials
         
         If network_id is provided, uses that specific network from the list.
         Otherwise, updates the default wifi_ssid/wifi_password for new controllers.
+        Uses ruamel.yaml to preserve comments and formatting.
         """
-        import yaml
-        
         secrets_path = '/config/secrets.yaml'
+        yaml = self._get_yaml_handler()
+        
         secrets = {}
         
         # Load existing secrets if file exists
         if os.path.exists(secrets_path):
             try:
                 with open(secrets_path, 'r') as f:
-                    secrets = yaml.safe_load(f) or {}
+                    secrets = yaml.load(f) or {}
             except Exception as e:
                 logger.warning(f"Could not read existing secrets.yaml: {e}")
         
@@ -67,9 +76,9 @@ class WebUI:
             secrets['subnet'] = '255.255.255.0'
         # Don't overwrite api_encryption_key or ota_password - they should be preserved
         
-        # Save back to file
+        # Save back to file (preserving comments and formatting)
         with open(secrets_path, 'w') as f:
-            yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+            yaml.dump(secrets, f)
         
         # Log the encryption key to verify it wasn't corrupted
         api_key = secrets.get('api_encryption_key', '')
@@ -594,7 +603,11 @@ class WebUI:
                 # Also save mesh_key to secrets.yaml for ESPHome configs
                 if mesh_key:
                     try:
-                        import yaml
+                        from ruamel.yaml import YAML
+                        yaml = YAML()
+                        yaml.preserve_quotes = True
+                        yaml.default_flow_style = False
+                        
                         secrets_path = '/config/secrets.yaml'
                         secrets = {}
                         
@@ -602,16 +615,16 @@ class WebUI:
                         if os.path.exists(secrets_path):
                             try:
                                 with open(secrets_path, 'r') as f:
-                                    secrets = yaml.safe_load(f) or {}
+                                    secrets = yaml.load(f) or {}
                             except Exception as e:
                                 logger.warning(f"Could not read existing secrets.yaml: {e}")
                         
                         # Update mesh_key in secrets
                         secrets['mesh_key'] = mesh_key
                         
-                        # Save back to file
+                        # Save back to file (preserving comments)
                         with open(secrets_path, 'w') as f:
-                            yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                            yaml.dump(secrets, f)
                         
                         logger.info(f"✅ Saved mesh key to /config/secrets.yaml")
                     except Exception as e:
@@ -656,14 +669,18 @@ class WebUI:
         def get_wifi_networks():
             """Get list of configured WiFi networks (SSIDs only, not passwords)"""
             try:
-                import yaml
+                from ruamel.yaml import YAML
+                yaml = YAML()
+                yaml.preserve_quotes = True
+                yaml.default_flow_style = False
+                
                 secrets_path = '/config/secrets.yaml'
                 
                 if not os.path.exists(secrets_path):
                     return jsonify({'networks': []})
                 
                 with open(secrets_path, 'r') as f:
-                    secrets = yaml.safe_load(f) or {}
+                    secrets = yaml.load(f) or {}
                 
                 # Get all wifi network SSIDs (stored as wifi_network_0, wifi_network_1, etc.)
                 networks = []
@@ -691,7 +708,11 @@ class WebUI:
         def add_wifi_network():
             """Add a new WiFi network"""
             try:
-                import yaml
+                from ruamel.yaml import YAML
+                yaml = YAML()
+                yaml.preserve_quotes = True
+                yaml.default_flow_style = False
+                
                 data = request.json
                 ssid = data.get('ssid')
                 password = data.get('password')
@@ -707,7 +728,7 @@ class WebUI:
                 
                 if os.path.exists(secrets_path):
                     with open(secrets_path, 'r') as f:
-                        secrets = yaml.safe_load(f) or {}
+                        secrets = yaml.load(f) or {}
                     logger.info(f"📖 Loaded {len(secrets)} existing secrets")
                 else:
                     logger.info(f"📝 Creating new secrets.yaml file")
@@ -724,14 +745,15 @@ class WebUI:
                 logger.info(f"💾 Saving network with ID {i}: {ssid}")
                 logger.info(f"💾 Total secrets to save: {len(secrets)}")
                 
-                # Save with explicit permissions
+                # Save with explicit permissions (preserving comments)
+                yaml_handler = self._get_yaml_handler()
                 with open(secrets_path, 'w') as f:
-                    yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                    yaml_handler.dump(secrets, f)
                 
                 # Verify it was written
                 if os.path.exists(secrets_path):
                     with open(secrets_path, 'r') as f:
-                        verify = yaml.safe_load(f) or {}
+                        verify = yaml.load(f) or {}
                     logger.info(f"✅ Verified: File contains {len(verify)} secrets after save")
                     if f'wifi_network_{i}_ssid' in verify:
                         logger.info(f"✅ Added WiFi network: {ssid} (ID: {i})")
@@ -753,14 +775,18 @@ class WebUI:
                 if network_id < 0:
                     return jsonify({'error': 'Cannot delete legacy WiFi network. This is a read-only entry from wifi_ssid/wifi_password.'}), 400
                 
-                import yaml
+                from ruamel.yaml import YAML
+                yaml = YAML()
+                yaml.preserve_quotes = True
+                yaml.default_flow_style = False
+                
                 secrets_path = '/config/secrets.yaml'
                 
                 if not os.path.exists(secrets_path):
                     return jsonify({'error': 'No WiFi networks configured'}), 404
                 
                 with open(secrets_path, 'r') as f:
-                    secrets = yaml.safe_load(f) or {}
+                    secrets = yaml.load(f) or {}
                 
                 # Check if network exists
                 ssid_key = f'wifi_network_{network_id}_ssid'
@@ -790,9 +816,10 @@ class WebUI:
                     secrets[f'wifi_network_{idx}_ssid'] = network['ssid']
                     secrets[f'wifi_network_{idx}_password'] = network['password']
                 
-                # Save
+                # Save (preserving comments)
+                yaml_handler = self._get_yaml_handler()
                 with open(secrets_path, 'w') as f:
-                    yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                    yaml_handler.dump(secrets, f)
                 
                 logger.info(f"🗑️  Deleted WiFi network: {ssid} (reindexed {len(networks)} remaining networks)")
                 return jsonify({'success': True})
@@ -901,7 +928,10 @@ class WebUI:
         def check_secrets():
             """Check secrets.yaml for encryption key validity"""
             try:
-                import yaml
+                from ruamel.yaml import YAML
+                yaml = YAML()
+                yaml.preserve_quotes = True
+                yaml.default_flow_style = False
                 secrets_path = '/config/secrets.yaml'
                 
                 if not os.path.exists(secrets_path):
@@ -909,7 +939,7 @@ class WebUI:
                 
                 with open(secrets_path, 'r') as f:
                     content = f.read()
-                    secrets = yaml.safe_load(content)
+                    secrets = yaml.load(content)
                 
                 api_key = secrets.get('api_encryption_key', '')
                 ota_pass = secrets.get('ota_password', '')

@@ -13,6 +13,14 @@ logger = logging.getLogger(__name__)
 class ESPHomeConfigGenerator:
     def __init__(self, bridge):
         self.bridge = bridge
+    
+    def _get_yaml_handler(self):
+        """Get ruamel.yaml instance configured to preserve comments"""
+        from ruamel.yaml import YAML
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        yaml.default_flow_style = False
+        return yaml
         self.config_dir = "/config/esphome"
         
         # Create directory if it doesn't exist
@@ -134,6 +142,11 @@ class ESPHomeConfigGenerator:
         WiFi secrets are managed in /config/secrets.yaml (Home Assistant's main secrets file)
         This only creates OTA and API encryption keys if they don't exist.
         """
+        from ruamel.yaml import YAML
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        yaml.default_flow_style = False
+        
         # Use Home Assistant's main secrets file
         ha_secrets_path = '/config/secrets.yaml'
         
@@ -155,8 +168,9 @@ class ESPHomeConfigGenerator:
                     'api_encryption_key': api_key,
                     'ota_password': ota_pass
                 }
+                yaml_handler = self._get_yaml_handler()
                 with open(ha_secrets_path, 'w') as f:
-                    yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                    yaml_handler.dump(secrets, f)
                 logger.info(f"✅ Created /config/secrets.yaml with generated keys")
                 logger.info(f"🔑 API key length: {len(api_key)}, valid base64: {self._is_valid_base64_key(api_key)}")
             except Exception as e:
@@ -166,7 +180,7 @@ class ESPHomeConfigGenerator:
             # Check if OTA/API keys exist, add them if missing or invalid
             try:
                 with open(ha_secrets_path, 'r') as f:
-                    secrets = yaml.safe_load(f) or {}
+                    secrets = yaml.load(f) or {}
                 
                 logger.info(f"📋 Loaded {len(secrets)} keys from secrets.yaml")
                 logger.info(f"🔑 Keys present: {list(secrets.keys())}")
@@ -191,8 +205,9 @@ class ESPHomeConfigGenerator:
                     logger.info(f"✅ OTA password is valid")
                 
                 if updated:
+                    yaml_handler = self._get_yaml_handler()
                     with open(ha_secrets_path, 'w') as f:
-                        yaml.dump(secrets, f, default_flow_style=False, sort_keys=False)
+                        yaml_handler.dump(secrets, f)
                     logger.info(f"✅ Updated /config/secrets.yaml with missing keys")
             except Exception as e:
                 logger.error(f"Failed to update secrets: {e}")

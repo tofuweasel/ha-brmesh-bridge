@@ -45,7 +45,8 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "flask-cors>=5.0.0,<6.0.0" \
     "requests>=2.32.0,<3.0.0" \
     "pillow>=10.0.0,<12.0.0" \
-    "numpy>=2.0.0,<3.0.0"
+    "numpy>=2.0.0,<3.0.0" \
+    "ruamel.yaml>=0.17.0,<1.0.0"
 
 # Copy addon files
 COPY rootfs /
