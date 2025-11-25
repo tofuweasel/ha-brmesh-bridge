@@ -4,6 +4,7 @@ BRMesh Bridge Web UI - Map view, light management, effects control
 """
 from flask import Flask, render_template, jsonify, request, send_from_directory, Response
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 import json
 import logging
 import os
@@ -16,6 +17,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='/app/static', template_folder='/app/templates')
+# Handle Home Assistant Ingress reverse proxy headers
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 CORS(app)
 
 class WebUI:
