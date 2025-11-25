@@ -20,6 +20,7 @@ import threading
 from effects import BRMeshEffects
 from web_ui import WebUI, app
 from esphome_generator import ESPHomeConfigGenerator
+from esphome_builder import ESPHomeBuilder
 from ble_discovery import BRMeshDiscovery
 from app_importer import BRMeshAppImporter
 from nspanel_ui import NSPanelUIGenerator
@@ -57,6 +58,7 @@ class BRMeshBridge:
         self.effects = None
         self.web_ui = None
         self.esphome_generator = None
+        self.esphome_builder = None
         self.ble_discovery = None
         self.app_importer = None
         self.nspanel_ui = None
@@ -365,6 +367,10 @@ class BRMeshBridge:
             self.esphome_generator = ESPHomeConfigGenerator(self)
             self.esphome_generator.sync_configs()
             logger.info("ESPHome configurations generated")
+        
+        # Initialize ESPHome builder for compiling/flashing
+        self.esphome_builder = ESPHomeBuilder(self)
+        logger.info("🔨 ESPHome builder initialized")
         
         # Keep running and periodically refresh
         try:

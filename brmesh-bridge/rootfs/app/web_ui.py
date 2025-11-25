@@ -352,6 +352,57 @@ class WebUI:
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/esphome/build/<controller_name>', methods=['POST'])
+        def build_firmware(controller_name):
+            """Compile firmware for a controller"""
+            try:
+                if not hasattr(self.bridge, 'esphome_builder'):
+                    return jsonify({'error': 'ESPHome builder not available'}), 400
+                
+                logger.info(f"🔨 Starting firmware build for {controller_name}")
+                result = self.bridge.esphome_builder.compile_firmware(controller_name)
+                
+                if result['success']:
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 500
+            except Exception as e:
+                logger.error(f"Build error: {e}", exc_info=True)
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/esphome/flash/<controller_name>', methods=['POST'])
+        def flash_firmware(controller_name):
+            """Flash firmware to ESP32"""
+            try:
+                if not hasattr(self.bridge, 'esphome_builder'):
+                    return jsonify({'error': 'ESPHome builder not available'}), 400
+                
+                data = request.json or {}
+                port = data.get('port', 'auto')
+                
+                logger.info(f"⚡ Starting firmware flash for {controller_name} on {port}")
+                result = self.bridge.esphome_builder.flash_firmware(controller_name, port)
+                
+                if result['success']:
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 500
+            except Exception as e:
+                logger.error(f"Flash error: {e}", exc_info=True)
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/esphome/ports', methods=['GET'])
+        def get_serial_ports():
+            """List available serial ports"""
+            try:
+                if not hasattr(self.bridge, 'esphome_builder'):
+                    return jsonify({'error': 'ESPHome builder not available'}), 400
+                
+                ports = self.bridge.esphome_builder.list_serial_ports()
+                return jsonify({'ports': ports})
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
         @app.route('/api/nspanel/refresh', methods=['POST'])
         def refresh_nspanel():
             """Refresh NSPanel display"""

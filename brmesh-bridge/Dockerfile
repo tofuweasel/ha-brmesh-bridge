@@ -9,7 +9,12 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     bluez \
-    bluez-deprecated
+    bluez-deprecated \
+    gcc \
+    g++ \
+    git \
+    make \
+    platformio
 
 # Install Python packages (latest stable versions)
 RUN pip3 install --break-system-packages --no-cache-dir \
@@ -20,7 +25,8 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "flask-cors>=5.0.0,<6.0.0" \
     "requests>=2.32.0,<3.0.0" \
     "pillow>=10.0.0,<12.0.0" \
-    "numpy>=2.0.0,<3.0.0"
+    "numpy>=2.0.0,<3.0.0" \
+    "esphome>=2024.0.0"
 
 # Copy addon files
 COPY rootfs /
