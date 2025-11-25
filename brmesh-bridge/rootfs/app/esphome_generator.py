@@ -202,39 +202,8 @@ class ESPHomeConfigGenerator:
             logger.info(f"📖 File exists, validating existing keys...")
             # Check if OTA/API keys exist, add them if missing or invalid
             try:
-                # Read as text first to check for duplicates
-                with open(ha_secrets_path, 'r') as f:
-                    content = f.read()
-                
-                # Remove duplicate keys by keeping only the last occurrence
-                lines = content.split('\n')
-                seen_keys = {}
-                for i, line in enumerate(lines):
-                    if ':' in line and not line.strip().startswith('#'):
-                        key = line.split(':')[0].strip()
-                        if key:
-                            seen_keys[key] = i
-                
-                # Check if we have duplicates
-                duplicate_count = len(lines) - len([l for l in lines if not l.strip() or l.strip().startswith('#') or ':' not in l]) - len(seen_keys)
-                if duplicate_count > 0:
-                    logger.warning(f"⚠️  Found {duplicate_count} duplicate keys, cleaning up...")
-                    # Rebuild file with only unique keys (last occurrence wins)
-                    deduplicated_lines = []
-                    for i, line in enumerate(lines):
-                        if ':' in line and not line.strip().startswith('#'):
-                            key = line.split(':')[0].strip()
-                            if key and seen_keys.get(key) == i:
-                                deduplicated_lines.append(line)
-                        else:
-                            deduplicated_lines.append(line)
-                    content = '\n'.join(deduplicated_lines)
-                    # Write cleaned file back
-                    with open(ha_secrets_path, 'w') as f:
-                        f.write(content)
-                    logger.info(f"✅ Removed duplicate keys from secrets.yaml")
-                
-                # Now parse the cleaned content
+                # Just load the file directly with ruamel.yaml
+                # It will handle duplicate keys by keeping the last one
                 with open(ha_secrets_path, 'r') as f:
                     secrets = yaml.load(f) or {}
                 
@@ -273,25 +242,17 @@ class ESPHomeConfigGenerator:
                         updated = True
                 
                 if updated:
-                    # Deduplicate secrets before saving
-                    seen_keys = set()
-                    deduplicated = {}
-                    for key in secrets:
-                        if key not in seen_keys:
-                            deduplicated[key] = secrets[key]
-                            seen_keys.add(key)
-                    
                     yaml_handler = self._get_yaml_handler()
                     with open(ha_secrets_path, 'w') as f:
-                        yaml_handler.dump(deduplicated, f)
-                    logger.info(f"✅ Updated /config/secrets.yaml with missing keys (deduplicated {len(secrets) - len(deduplicated)} duplicate entries)")
+                        yaml_handler.dump(secrets, f)
+                    logger.info(f"✅ Updated /config/secrets.yaml with missing keys")
                     
                     # Also copy to ESPHome directory so ESPHome can find it
                     esphome_secrets_path = '/config/esphome/secrets.yaml'
                     try:
                         os.makedirs(os.path.dirname(esphome_secrets_path), exist_ok=True)
                         with open(esphome_secrets_path, 'w') as f:
-                            yaml_handler.dump(deduplicated, f)
+                            yaml_handler.dump(secrets, f)
                         logger.info(f"✅ Copied secrets to /config/esphome/secrets.yaml for ESPHome")
                     except Exception as copy_error:
                         logger.error(f"Failed to copy secrets to esphome directory: {copy_error}")
