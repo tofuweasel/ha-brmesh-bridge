@@ -13,7 +13,7 @@
         <header>
             <div class="header-title">
                 <h1>🔆 ESP BLE Bridge</h1>
-                <span class="version">v0.25.4</span>
+                <span class="version">v0.25.5</span>
             </div>
             <div class="header-controls">
                 <button id="dark-mode-toggle" class="btn btn-secondary" title="Toggle Dark Mode">🌙</button>
@@ -134,8 +134,11 @@
                             <button type="button" id="toggle-mesh-key" style="padding: 8px 12px; cursor: pointer; background: #555; border: 1px solid #777; border-radius: 4px; color: white;">
                                 👁️
                             </button>
+                            <button type="button" onclick="generateMeshKey()" style="padding: 8px 12px; cursor: pointer; background: #2196F3; border: 1px solid #1976D2; border-radius: 4px; color: white;">
+                                🎲 Generate
+                            </button>
                         </div>
-                        <small>Extract from BRMesh app via ADB logcat</small>
+                        <small>Extract from BRMesh app via ADB logcat, or generate a new key for native pairing</small>
                     </div>
                 </div>
 

@@ -60,6 +60,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(refreshAll, 5000);
 });
 
+// Generate random mesh key (8 hex characters)
+function generateMeshKey() {
+    const hexChars = '0123456789abcdef';
+    let meshKey = '';
+    for (let i = 0; i < 8; i++) {
+        meshKey += hexChars[Math.floor(Math.random() * 16)];
+    }
+    document.getElementById('mesh-key').value = meshKey;
+    showNotification('✅ Generated new mesh key: ' + meshKey, 'success');
+});
+
 // Tab Navigation
 function setupTabs() {
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -986,25 +997,25 @@ function initMap() {
     
     map = L.map('map').setView([lat, lon], zoom);
     
-    // Use ESRI ArcGIS satellite imagery (free, no API key required)
+    // OpenStreetMap standard layer (reliable, no API key required)
+    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+    
+    // ESRI World Imagery satellite layer
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        attribution: '© ESRI, Earthstar Geographics'
+        attribution: '© <a href="https://www.esri.com/">Esri</a>, Earthstar Geographics'
     });
     
-    // ESRI street map layer
-    const streetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19,
-        attribution: '© ESRI'
-    });
-    
-    // Add satellite by default
-    satelliteLayer.addTo(map);
+    // Add OpenStreetMap by default (most reliable)
+    osmLayer.addTo(map);
     
     // Layer control to switch between views
     const baseMaps = {
-        "Satellite": satelliteLayer,
-        "Street Map": streetLayer
+        "Street Map": osmLayer,
+        "Satellite": satelliteLayer
     };
     
     L.control.layers(baseMaps).addTo(map);
