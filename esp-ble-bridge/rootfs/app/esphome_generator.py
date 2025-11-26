@@ -98,21 +98,23 @@ class ESPHomeConfigGenerator:
                     'continuous': True
                 },
                 'on_ble_advertise': [{
-                    'manufacturer_id': '0xf0ff',
                     'then': [{
                         'lambda': """
-ESP_LOGI("ble", "BRMesh device detected: %s (RSSI: %d)", 
-         x.address_str().c_str(), x.get_rssi());
-
-// Log the raw manufacturer data
+// Check if this is a BRMesh device (manufacturer ID 0xf0ff)
 auto mfg_data = x.get_manufacturer_data();
-std::string hex = "";
-for (auto byte : mfg_data) {
-  char buf[3];
-  sprintf(buf, "%02x", byte);
-  hex += buf;
+if (mfg_data.size() >= 2 && mfg_data[0] == 0xff && mfg_data[1] == 0xf0) {
+  ESP_LOGI("ble", "BRMesh device detected: %s (RSSI: %d)", 
+           x.address_str().c_str(), x.get_rssi());
+  
+  // Log the raw manufacturer data
+  std::string hex = "";
+  for (auto byte : mfg_data) {
+    char buf[3];
+    sprintf(buf, "%02x", byte);
+    hex += buf;
+  }
+  ESP_LOGD("pairing", "Manufacturer data: %s", hex.c_str());
 }
-ESP_LOGD("pairing", "Manufacturer data: %s", hex.c_str());
                         """
                     }]
                 }]
