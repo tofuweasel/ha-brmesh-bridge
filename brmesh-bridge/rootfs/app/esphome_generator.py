@@ -120,7 +120,8 @@ class ESPHomeConfigGenerator:
                 'id': f"brmesh_light_{light_id:02d}",
                 'name': light_data['name'],
                 'light_id': light_id,
-                'color_interlock': light_data['color_interlock']
+                'color_interlock': light_data['color_interlock'],
+                'throttle': '300ms'  # Prevent command queue overflow
             }
             
             if light_data.get('supports_cwww'):
