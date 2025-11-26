@@ -1,8 +1,8 @@
-name: BRMesh Bridge
-version: 0.22.0
-slug: brmesh-bridge
-description: Advanced BRMesh light management with map view, effects, and multi-controller support
-url: https://github.com/tofuweasel/ha-brmesh-bridge
+name: ESP BLE Bridge
+version: 0.25.0
+slug: esp-ble-bridge
+description: ESP32 BLE bridge for Fastcon/BRMesh lights with optimized commands, native pairing, and multi-protocol support
+url: https://github.com/tofuweasel/ha-esp-ble-bridge
 arch:
   - aarch64
   - amd64
