@@ -205,6 +205,14 @@ function renderLights() {
             </div>
             <div class="color-preview" style="background-color: ${colorHex};" 
                  onclick="pickColor(${light.id})"></div>
+            <div class="light-actions">
+                <button class="btn btn-danger btn-sm" onclick="unpairLight(${light.id}, '${light.name}')" title="Remove from system">
+                    🗑️ Remove
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="factoryResetLight(${light.id}, '${light.name}')" title="Factory reset light">
+                    🔄 Reset
+                </button>
+            </div>
         `;
         
         grid.appendChild(card);
@@ -558,6 +566,9 @@ function renderControllers() {
             <div class="controller-actions">
                 <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
                 <button class="btn btn-success" onclick="window.open('/config/esphome', '_blank')">🔧 Open ESPHome</button>
+                <button class="btn btn-danger btn-sm" onclick="resetController('${controllerName}')" title="Reset this controller">
+                    🔄 Reset
+                </button>
             </div>
         `;
         
@@ -1728,3 +1739,115 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveBtn) saveBtn.addEventListener('click', saveSettings);
     if (resetBtn) resetBtn.addEventListener('click', resetSettings);
 });
+
+// Reset functionality
+async function factoryResetLight(lightId, lightName) {
+    if (!confirm(`⚠️ Factory reset light "${lightName}" (ID: ${lightId})?\n\nThis will:\n- Clear the light's pairing data\n- Return it to pairing mode\n- Require re-pairing with the mesh\n\nPower cycle the light after reset to activate pairing mode.`)) {
+        return;
+    }
+    
+    try {
+        showNotification(`Resetting light ${lightName}...`, 'info');
+        const response = await fetch(`api/lights/${lightId}/reset`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ ${result.message}`, 'success');
+        } else {
+            showNotification(`❌ Reset failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Factory reset error:', error);
+        showNotification(`❌ Failed to reset light: ${error.message}`, 'error');
+    }
+}
+
+async function unpairLight(lightId, lightName) {
+    if (!confirm(`🗑️ Remove light "${lightName}" (ID: ${lightId}) from the system?\n\nThis will:\n- Remove the light from Home Assistant\n- Delete it from your configuration\n- Remove it from all ESPHome configs\n\nThe light will remain paired with the mesh. To factory reset it, use the Reset button instead.\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        showNotification(`Removing light ${lightName}...`, 'info');
+        const response = await fetch(`api/lights/${lightId}/unpair`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ ${result.message}`, 'success');
+            await loadLights();
+        } else {
+            showNotification(`❌ Remove failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Unpair error:', error);
+        showNotification(`❌ Failed to remove light: ${error.message}`, 'error');
+    }
+}
+
+async function resetController(controllerName) {
+    if (!confirm(`⚠️ Reset controller "${controllerName}"?\n\nThis will:\n- Remove the controller from configuration\n- Delete its ESPHome YAML file\n- Require reconfiguration if you want to use it again\n\nLights will still work with other controllers.\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        showNotification(`Resetting controller ${controllerName}...`, 'info');
+        const response = await fetch(`api/controllers/${controllerName}/reset`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ ${result.message}`, 'success');
+            await loadControllers();
+        } else {
+            showNotification(`❌ Reset failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Controller reset error:', error);
+        showNotification(`❌ Failed to reset controller: ${error.message}`, 'error');
+    }
+}
+
+async function systemReset() {
+    if (!confirm(`🚨 FULL SYSTEM RESET 🚨\n\nThis will permanently remove:\n- All lights\n- All controllers\n- All scenes\n- All effects\n- All ESPHome configurations\n\nYour mesh key and MQTT settings will be preserved.\n\nTHIS CANNOT BE UNDONE!\n\nAre you absolutely sure?`)) {
+        return;
+    }
+    
+    // Double confirmation
+    const confirmText = prompt(`Type "RESET" (in capital letters) to confirm full system reset:`);
+    if (confirmText !== 'RESET') {
+        showNotification('❌ System reset cancelled', 'info');
+        return;
+    }
+    
+    try {
+        showNotification(`⚠️ Performing full system reset...`, 'warning');
+        const response = await fetch(`api/system/reset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirm: true })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ ${result.message}`, 'success');
+            // Reload the entire page after reset
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showNotification(`❌ System reset failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('System reset error:', error);
+        showNotification(`❌ Failed to reset system: ${error.message}`, 'error');
+    }
+}

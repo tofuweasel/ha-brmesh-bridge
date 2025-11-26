@@ -1,0 +1,106 @@
+# BRMesh Bridge Add-on Configuration Example
+# 
+# This file shows how to configure the BRMesh Bridge add-on.
+# Copy to Home Assistant add-on configuration or /data/options.json
+
+{
+  "mesh_key": "30323336",
+  "discovery_enabled": true,
+  "generate_esphome_configs": true,
+  "use_addon_mqtt": true,
+  
+  "lights": {
+    "1": {
+      "name": "Front Floodlight Left",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "2": {
+      "name": "Front Floodlight Right",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "3": {
+      "name": "Back Floodlight Left",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "4": {
+      "name": "Back Floodlight Right",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "5": {
+      "name": "Side Floodlight",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "6": {
+      "name": "Garage Floodlight",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "7": {
+      "name": "Driveway Floodlight",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "8": {
+      "name": "Patio Floodlight",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "9": {
+      "name": "Garden Floodlight 1",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "10": {
+      "name": "Garden Floodlight 2",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "11": {
+      "name": "Garden Floodlight 3",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "12": {
+      "name": "Walkway Floodlight 1",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "13": {
+      "name": "Walkway Floodlight 2",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "14": {
+      "name": "Accent Floodlight 1",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    },
+    "15": {
+      "name": "Accent Floodlight 2",
+      "mac": null,
+      "color_interlock": true,
+      "device_type": "floodlight"
+    }
+  },
+  
+  "controllers": []
+}

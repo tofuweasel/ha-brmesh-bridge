@@ -150,8 +150,15 @@ class WebUI:
         
         @app.route('/api/controllers')
         def get_controllers():
-            """Get all ESP32 controllers"""
-            return jsonify(self.bridge.controllers)
+            """Get all ESP32 controllers with enhanced status info"""
+            controllers_with_status = []
+            for controller in self.bridge.controllers:
+                # Add computed fields for web UI display
+                controller_info = controller.copy()
+                controller_info['online'] = controller.get('status') == 'online'
+                controller_info['config_status'] = 'configured' if controller.get('name') else 'no_config'
+                controllers_with_status.append(controller_info)
+            return jsonify(controllers_with_status)
         
         @app.route('/api/controllers/<controller_name>/signal', methods=['GET'])
         def get_controller_signal(controller_name):
@@ -584,6 +591,141 @@ class WebUI:
                 self.bridge.nspanel_ui.refresh_nspanel_display()
                 return jsonify({'success': True})
             except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/lights/<int:light_id>/reset', methods=['POST'])
+        def factory_reset_light(light_id):
+            """Factory reset a light (clears pairing, returns to pairing mode)"""
+            try:
+                if light_id not in self.bridge.lights:
+                    return jsonify({'error': f'Light {light_id} not found'}), 404
+                
+                logger.info(f"🔄 Factory resetting light {light_id}")
+                success = self.bridge.factory_reset_light(light_id)
+                
+                if success:
+                    return jsonify({
+                        'success': True,
+                        'message': f'Light {light_id} has been factory reset. Power cycle the light to enter pairing mode.'
+                    })
+                else:
+                    return jsonify({'error': 'Failed to send reset command'}), 500
+            except Exception as e:
+                logger.error(f"Reset light error: {e}", exc_info=True)
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/lights/<int:light_id>/unpair', methods=['POST'])
+        def unpair_light(light_id):
+            """Remove light from configuration (unregister from Home Assistant)"""
+            try:
+                if light_id not in self.bridge.lights:
+                    return jsonify({'error': f'Light {light_id} not found'}), 404
+                
+                light_name = self.bridge.lights[light_id]['name']
+                logger.info(f"🗑️  Unpairing light {light_id} ({light_name})")
+                
+                # Remove from MQTT discovery
+                self.bridge.unpublish_light_discovery(light_id)
+                
+                # Remove from lights dictionary
+                del self.bridge.lights[light_id]
+                
+                # Remove from config
+                self.bridge.config['lights'] = [
+                    light for light in self.bridge.config.get('lights', [])
+                    if light['light_id'] != light_id
+                ]
+                self.bridge.save_config()
+                
+                # Regenerate ESPHome configs if enabled
+                if self.bridge.esphome_generator and self.bridge.config.get('generate_esphome_configs', True):
+                    self.bridge.esphome_generator.generate_all_configs()
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Light {light_id} ({light_name}) has been removed from configuration'
+                })
+            except Exception as e:
+                logger.error(f"Unpair light error: {e}", exc_info=True)
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/controllers/<controller_name>/reset', methods=['POST'])
+        def reset_controller(controller_name):
+            """Reset controller configuration (clears WiFi, regenerates secrets)"""
+            try:
+                controller = next((c for c in self.bridge.controllers if c['name'] == controller_name), None)
+                if not controller:
+                    return jsonify({'error': 'Controller not found'}), 404
+                
+                logger.info(f"🔄 Resetting controller {controller_name}")
+                
+                # Remove controller from configuration
+                self.bridge.controllers = [c for c in self.bridge.controllers if c['name'] != controller_name]
+                self.bridge.config['controllers'] = self.bridge.controllers
+                self.bridge.save_config()
+                
+                # Remove ESPHome YAML file
+                esphome_path = f'/config/esphome/{controller_name}.yaml'
+                if os.path.exists(esphome_path):
+                    os.remove(esphome_path)
+                    logger.info(f"🗑️  Removed ESPHome config: {esphome_path}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Controller {controller_name} has been reset. You can add it again as a new controller.'
+                })
+            except Exception as e:
+                logger.error(f"Reset controller error: {e}", exc_info=True)
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/system/reset', methods=['POST'])
+        def system_reset():
+            """Full system reset (removes all lights, controllers, scenes, effects - use with caution!)"""
+            try:
+                data = request.json or {}
+                confirm = data.get('confirm', False)
+                
+                if not confirm:
+                    return jsonify({
+                        'error': 'System reset requires confirmation. Set "confirm": true in request body.'
+                    }), 400
+                
+                logger.warning("⚠️  FULL SYSTEM RESET INITIATED")
+                
+                # Remove all MQTT discovery topics
+                for light_id in list(self.bridge.lights.keys()):
+                    self.bridge.unpublish_light_discovery(light_id)
+                
+                # Clear all data
+                self.bridge.lights = {}
+                self.bridge.controllers = []
+                
+                # Reset config to defaults
+                self.bridge.config['lights'] = []
+                self.bridge.config['controllers'] = []
+                self.bridge.config['scenes'] = []
+                self.bridge.config['effects'] = []
+                self.bridge.save_config()
+                
+                # Remove all ESPHome YAML files (except secrets.yaml)
+                esphome_dir = '/config/esphome'
+                if os.path.exists(esphome_dir):
+                    for filename in os.listdir(esphome_dir):
+                        if filename.endswith('.yaml') and filename != 'secrets.yaml':
+                            filepath = os.path.join(esphome_dir, filename)
+                            try:
+                                os.remove(filepath)
+                                logger.info(f"🗑️  Removed {filepath}")
+                            except Exception as e:
+                                logger.warning(f"Could not remove {filepath}: {e}")
+                
+                logger.warning("✅ System reset complete")
+                return jsonify({
+                    'success': True,
+                    'message': 'System has been fully reset. All lights, controllers, scenes, and effects have been removed.'
+                })
+            except Exception as e:
+                logger.error(f"System reset error: {e}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/settings', methods=['GET'])

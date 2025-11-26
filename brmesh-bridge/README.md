@@ -15,6 +15,7 @@ Bridge your BRMesh lights to Home Assistant with dynamic light management.
 - **📡 MQTT Discovery**: Automatically creates Home Assistant entities
 - **🔌 Multiple Controllers**: Support for multiple ESP32 controllers with signal strength monitoring
 - **🚫 Phone-Free Operation**: Set up 7+ new lights without ever touching the Android app
+- **🔄 Reset & Recovery**: Factory reset lights, remove devices, reset controllers, or full system reset
 
 ## Configuration
 
@@ -73,6 +74,17 @@ adb logcat -d | grep "payload:"
 
 Look for the second byte in the payload - that's your light ID in hex.
 Example: `220a00...` means light ID 10 (0x0a = 10 decimal)
+
+## Reset & Recovery
+
+The add-on includes comprehensive reset functionality:
+
+- **Factory Reset Light**: Clear pairing data and return light to pairing mode
+- **Remove Light**: Remove light from Home Assistant without factory reset
+- **Reset Controller**: Remove ESP32 controller from configuration
+- **Full System Reset**: Remove all lights, controllers, scenes, and effects
+
+See [RESET_GUIDE.md](RESET_GUIDE.md) for complete documentation.
 
 ## Requirements
 

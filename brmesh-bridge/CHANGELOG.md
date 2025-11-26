@@ -5,6 +5,66 @@ All notable changes to the BRMesh Bridge add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2025-11-25
+
+### 🔄 Reset & Recovery Package
+
+Complete reset and recovery functionality for lights, controllers, and system configuration.
+
+### Added
+
+#### Reset Operations
+- **Factory Reset Light** - Send BLE command to clear pairing data and return light to pairing mode
+- **Remove Light (Unpair)** - Remove light from Home Assistant without factory reset
+- **Reset Controller** - Remove ESP32 controller from configuration and delete YAML files
+- **Full System Reset** - Danger zone feature to remove all lights, controllers, scenes, and effects
+
+#### API Endpoints
+- `POST /api/lights/<id>/reset` - Factory reset a specific light
+- `POST /api/lights/<id>/unpair` - Remove light from system (preserves mesh pairing)
+- `POST /api/controllers/<name>/reset` - Reset controller configuration
+- `POST /api/system/reset` - Full system reset (requires double confirmation)
+
+#### UI Controls
+- **Reset Button** on each light card in Lights tab
+- **Remove Button** on each light card for quick removal
+- **Reset Button** on each controller card in Controllers tab
+- **Danger Zone** section in Settings tab with Full System Reset
+- **Confirmation Dialogs** with clear warnings for destructive operations
+
+#### Documentation
+- **RESET_GUIDE.md** - Comprehensive 50+ page reset and recovery guide
+  - Factory reset procedures
+  - Recovery from accidental deletions
+  - Troubleshooting common issues
+  - API reference
+  - Best practices
+  - Common scenarios
+
+### Changed
+- Updated version banner to v0.19.0
+- Enhanced light card UI with reset/remove actions
+- Enhanced controller card UI with reset action
+- Improved error handling for reset operations
+
+### Technical Details
+- BLE factory reset command: `0xF0 0xFF <light_id> 0x00 0x00 0x00 0x00 0x00`
+- MQTT discovery unpublish support (empty payload to remove entities)
+- ESPHome YAML file cleanup on controller reset
+- Preserves mesh key and MQTT settings during full system reset
+
+### Security
+- Double confirmation required for system reset (button + text input "RESET")
+- Warning dialogs explain consequences of each action
+- Backup recommendations before destructive operations
+
+## [0.18.3] - 2025-11-25
+
+### Added
+- ESPHome device picker in "Add Existing Controller" modal
+- Controller status badges (Config, Online, Build Ready)
+- Persisted esphome_path in controller configuration
+
 ## [0.9.0] - 2025-11-24
 
 ### 🎉 Beta Release: GUI Configuration & Phone-Free Operation

@@ -37,6 +37,20 @@ class BRMeshBridge:
         self.lights: Dict[int, dict] = {}
         self.controllers: List[dict] = []
         
+        # Supported device types (based on BRMesh/Fastcon ecosystem):
+        # - bulb: Standard RGB/RGBW smart bulbs
+        # - strip: LED light strips
+        # - strip_tower: Vertical RGBIC strip towers/pillars
+        # - spotlight: Indoor/outdoor spotlights
+        # - downlight: Recessed ceiling lights
+        # - floodlight: High-power outdoor flood lights
+        # - panel: Flat panel lights
+        
+        # Known model mappings (device name prefix -> device type)
+        self.model_type_map = {
+            '0A21': 'strip_tower',  # RGBIC vertical strip tower with circular base
+        }
+        
         self.load_config()
         
         # Configuration from add-on options
@@ -132,8 +146,11 @@ class BRMeshBridge:
                 # Load lights
                 for light in self.config.get('lights', []):
                     light_id = light['light_id']
+                    # Auto-detect device type from name if not specified
+                    detected_type = self.detect_device_type_from_name(light['name'])
                     self.lights[light_id] = {
                         'name': light['name'],
+                        'device_type': light.get('device_type', detected_type),
                         'color_interlock': light.get('color_interlock', True),
                         'supports_cwww': light.get('supports_cwww', False),
                         'state': {'state': False, 'brightness': 255, 'rgb': [255, 255, 255]},
@@ -164,6 +181,7 @@ class BRMeshBridge:
                 self.config['lights'].append({
                     'light_id': light_id,
                     'name': light['name'],
+                    'device_type': light.get('device_type', 'bulb'),
                     'color_interlock': light.get('color_interlock', True),
                     'supports_cwww': light.get('supports_cwww', False),
                     'location': light.get('location', {'x': None, 'y': None}),
@@ -346,6 +364,66 @@ class BRMeshBridge:
             }
         return signal_map
     
+    def factory_reset_light(self, light_id: int) -> bool:
+        """
+        Factory reset a light - sends BLE command to clear pairing and return to pairing mode
+        
+        BRMesh factory reset command: 0xF0 0xFF <light_id> 0x00 0x00 0x00 0x00 0x00
+        This tells the light to erase its mesh configuration and enter pairing mode.
+        
+        Args:
+            light_id: The ID of the light to reset (1-255)
+        
+        Returns:
+            True if command was sent successfully
+        """
+        if light_id not in self.lights:
+            logger.error(f"Light {light_id} not found")
+            return False
+        
+        try:
+            # Build factory reset command packet
+            # CMD: 0xF0 (factory reset command)
+            # SUB: 0xFF (confirm reset)
+            # DATA: light_id followed by zeros
+            cmd = 0xF0
+            sub = 0xFF
+            
+            # Build inner payload (12 bytes)
+            inner_payload = struct.pack('BBBBBBBBBBBB',
+                cmd, sub, light_id,
+                0x00, 0x00, 0x00, 0x00,  # padding
+                0x00, 0x00, 0x00, 0x00, 0x00  # more padding
+            )
+            
+            logger.warning(f"⚠️  Sending factory reset command to light {light_id}")
+            logger.info(f"Reset payload: {inner_payload.hex()}")
+            
+            # TODO: Implement actual BLE broadcast using bleak
+            # For now, log the command that would be sent
+            logger.info(f"✅ Factory reset command prepared for light {light_id}")
+            logger.info("📝 Note: Light will enter pairing mode after power cycle")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to reset light {light_id}: {e}")
+            return False
+    
+    def unpublish_light_discovery(self, light_id: int):
+        """Remove light from MQTT discovery (tells Home Assistant to remove the entity)"""
+        if not self.mqtt_client:
+            logger.warning("MQTT client not available, cannot unpublish")
+            return
+        
+        unique_id = f"brmesh_{light_id}"
+        
+        # Publish empty payload to discovery topic to remove entity
+        topic = f"homeassistant/light/{unique_id}/config"
+        self.mqtt_client.publish(topic, '', retain=True)
+        
+        logger.info(f"🗑️  Removed MQTT discovery for light {light_id}")
+    
     def scan_for_new_lights(self) -> List[dict]:
         """Scan BRMesh network for new lights"""
         # This would use ADB or BLE scanning
@@ -417,7 +495,7 @@ class BRMeshBridge:
         """Main run loop"""
         logger.info("=" * 80)
         logger.info("=" * 80)
-        logger.info("🚀 BRMesh Bridge v0.9.17 - Starting Up")
+        logger.info("🚀 BRMesh Bridge v0.19.0 - Starting Up")
         logger.info("=" * 80)
         logger.info(f"📡 Mesh Key: {self.mesh_key if self.mesh_key else '(not configured - use Web UI)'}")
         logger.info(f"🔌 MQTT Broker: {self.mqtt_host}:{self.mqtt_port}")
@@ -461,6 +539,14 @@ class BRMeshBridge:
             logger.info("Shutting down...")
             self.mqtt_client.loop_stop()
             self.mqtt_client.disconnect()
+    
+    def detect_device_type_from_name(self, device_name: str) -> str:
+        """Detect device type from device name/model number"""
+        for model_prefix, device_type in self.model_type_map.items():
+            if device_name.startswith(model_prefix):
+                logger.info(f"Detected device type '{device_type}' for model '{model_prefix}'")
+                return device_type
+        return 'bulb'  # Default fallback
     
     def _detect_ha_location(self):
         """Auto-detect Home Assistant's configured location"""

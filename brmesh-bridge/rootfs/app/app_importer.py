@@ -225,6 +225,7 @@ class BRMeshAppImporter:
                     # New device - add it
                     self.bridge.lights[device_id] = {
                         'name': device.get('name', f'BRMesh Light {device_id}'),
+                        'device_type': device.get('device_type', 'bulb'),
                         'state': device.get('state', {
                             'state': False,
                             'brightness': 255,

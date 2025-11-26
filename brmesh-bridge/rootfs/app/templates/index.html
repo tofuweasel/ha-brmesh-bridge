@@ -253,6 +253,13 @@
                     <button class="btn btn-secondary" onclick="exportConfig()">💾 Export Configuration</button>
                 </div>
 
+                <div class="settings-section">
+                    <h3>🚨 Danger Zone</h3>
+                    <p style="color: #e74c3c;">These actions cannot be undone. Use with caution!</p>
+                    <button class="btn btn-danger" onclick="systemReset()">🔥 Full System Reset</button>
+                    <small>Removes all lights, controllers, scenes, and effects. Preserves settings.</small>
+                </div>
+
                 <div class="settings-actions">
                     <button id="save-settings-btn" class="btn btn-primary">💾 Save Settings</button>
                     <button id="reset-settings-btn" class="btn btn-danger">🔄 Reset to Defaults</button>

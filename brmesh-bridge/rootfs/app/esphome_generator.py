@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 class ESPHomeConfigGenerator:
     def __init__(self, bridge):
         self.bridge = bridge
+        self.config_dir = "/config/esphome"
+        
+        # Create directory if it doesn't exist
+        os.makedirs(self.config_dir, exist_ok=True)
     
     def _get_yaml_handler(self):
         """Get ruamel.yaml instance configured to preserve comments"""
@@ -21,10 +25,6 @@ class ESPHomeConfigGenerator:
         yaml.preserve_quotes = True
         yaml.default_flow_style = False
         return yaml
-        self.config_dir = "/config/esphome"
-        
-        # Create directory if it doesn't exist
-        os.makedirs(self.config_dir, exist_ok=True)
     
     def generate_controller_config(self, controller: Dict) -> str:
         """Generate ESPHome YAML config for a controller
@@ -50,7 +50,8 @@ class ESPHomeConfigGenerator:
         
         config = {
             'esphome': {
-                'name': controller_name
+                'name': controller_name,
+                'friendly_name': controller['name']
             },
             'esp32': {
                 'board': 'esp32dev',
@@ -59,25 +60,36 @@ class ESPHomeConfigGenerator:
                 }
             },
             'wifi': wifi_config,
-            'api': {
-                'encryption': {
-                    'key': '!secret api_encryption_key'
+            'captive_portal': {},
+            'web_server': {
+                'port': 80
+            },
+            'mqtt': {
+                'broker': 'core-mosquitto',
+                'discovery': True,
+                'discovery_prefix': 'homeassistant',
+                'birth_message': {
+                    'topic': f'brmesh-bridge/{controller_name}/status',
+                    'payload': 'online'
+                },
+                'will_message': {
+                    'topic': f'brmesh-bridge/{controller_name}/status',
+                    'payload': 'offline'
                 }
             },
             'ota': [{
-                'platform': 'esphome',
-                'password': '!secret ota_password'
+                'platform': 'esphome'
             }],
             'logger': {
                 'level': 'INFO'
             },
             'external_components': [{
-                'source': '/app/external_components',
+                'source': 'github://scross01/esphome-fastcon@dev',
                 'components': ['fastcon']
             }],
             'esp32_ble_server': {},
             'fastcon': {
-                'mesh_key': '!secret mesh_key'
+                'mesh_key': self.bridge.config.get('mesh_key', '30323336')
             },
             'light': []
         }

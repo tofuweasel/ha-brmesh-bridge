@@ -171,8 +171,10 @@ class BRMeshDiscovery:
             name = f"BRMesh Light {device_id}"
         
         # Add to lights
+        detected_type = self.bridge.detect_device_type_from_name(name)
         self.bridge.lights[device_id] = {
             'name': name,
+            'device_type': detected_type,
             'state': {'state': False, 'brightness': 255, 'rgb': [255, 255, 255]},
             'location': {'x': None, 'y': None},
             'color_interlock': True,
@@ -187,9 +189,11 @@ class BRMeshDiscovery:
             if 'lights' not in config:
                 config['lights'] = []
             
+            detected_type = self.bridge.detect_device_type_from_name(name)
             config['lights'].append({
                 'light_id': device_id,
                 'name': name,
+                'device_type': detected_type,
                 'color_interlock': True,
                 'supports_cwww': False,
                 'location': {'x': None, 'y': None}

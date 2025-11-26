@@ -188,6 +188,10 @@ class BRMeshBridge:
         """MQTT connection callback"""
         logger.info("MQTT connected with result code " + str(rc))
         
+        # Subscribe to ESP32 controller status topics (birth messages)
+        client.subscribe("brmesh-bridge/+/status")
+        logger.info("Subscribed to ESP32 controller status topics")
+        
         # Subscribe to command topics for all lights
         for light_id in self.lights:
             topic = f"homeassistant/light/brmesh_{light_id}/set"
@@ -199,8 +203,13 @@ class BRMeshBridge:
             self.publish_discovery()
     
     def on_mqtt_message(self, client, userdata, msg):
-        """MQTT message callback - handle light commands"""
+        """MQTT message callback - handle light commands and controller status"""
         try:
+            # Check if this is an ESP32 controller status message
+            if msg.topic.startswith("brmesh-bridge/") and msg.topic.endswith("/status"):
+                self.handle_controller_status(msg)
+                return
+            
             # Parse topic to get light ID
             topic_parts = msg.topic.split('/')
             light_name = topic_parts[2]  # e.g., "brmesh_10"
@@ -230,6 +239,43 @@ class BRMeshBridge:
             
         except Exception as e:
             logger.error(f"Error handling MQTT message: {e}")
+    
+    def handle_controller_status(self, msg):
+        """Handle ESP32 controller online/offline status"""
+        try:
+            # Extract controller name from topic: brmesh-bridge/{name}/status
+            controller_name = msg.topic.split('/')[1]
+            status = msg.payload.decode()
+            
+            logger.info(f"📡 Controller '{controller_name}' is {status}")
+            
+            # Find or create controller in list
+            controller = None
+            for c in self.controllers:
+                if c.get('name') == controller_name:
+                    controller = c
+                    break
+            
+            if not controller:
+                # Auto-register new controller
+                controller = {
+                    'name': controller_name,
+                    'id': controller_name,
+                    'status': status,
+                    'last_seen': __import__('datetime').datetime.now().isoformat()
+                }
+                self.controllers.append(controller)
+                logger.info(f"✅ Auto-registered new controller: {controller_name}")
+            else:
+                # Update existing controller status
+                controller['status'] = status
+                controller['last_seen'] = __import__('datetime').datetime.now().isoformat()
+            
+            # Save config with updated controllers
+            self.save_config()
+            
+        except Exception as e:
+            logger.error(f"Error handling controller status: {e}")
     
     def publish_discovery(self):
         """Publish Home Assistant MQTT discovery configs"""
