@@ -100,22 +100,31 @@ class ESPHomeConfigGenerator:
                 'on_ble_advertise': [{
                     'then': [{
                         'lambda': """
-// Check if this is a BRMesh device (manufacturer ID 0xf0ff)
+// Log all BLE advertisements for debugging
+ESP_LOGD("ble_scan", "Device: %s RSSI: %d", x.address_str().c_str(), x.get_rssi());
+
+// Check manufacturer data
 auto mfg_datas = x.get_manufacturer_datas();
-for (auto mfg_data : mfg_datas) {
-  if (mfg_data.uuid.get_uuid().uuid.uuid16 == 0xf0ff) {
-    ESP_LOGI("ble", "BRMesh device detected: %s (RSSI: %d)", 
-             x.address_str().c_str(), x.get_rssi());
+if (!mfg_datas.empty()) {
+  for (auto mfg_data : mfg_datas) {
+    uint16_t uuid = mfg_data.uuid.get_uuid().uuid.uuid16;
+    ESP_LOGD("ble_scan", "  Manufacturer UUID: 0x%04x", uuid);
     
-    // Log the raw manufacturer data
-    std::string hex = "";
-    for (auto byte : mfg_data.data) {
-      char buf[3];
-      sprintf(buf, "%02x", byte);
-      hex += buf;
+    // BRMesh devices use manufacturer ID 0xf0ff
+    if (uuid == 0xf0ff || uuid == 0xfff0) {
+      ESP_LOGI("ble", "BRMesh device found: %s (RSSI: %d)", 
+               x.address_str().c_str(), x.get_rssi());
+      
+      // Log raw manufacturer data
+      std::string hex = "";
+      for (auto byte : mfg_data.data) {
+        char buf[3];
+        sprintf(buf, "%02x", byte);
+        hex += buf;
+      }
+      ESP_LOGI("pairing", "Manufacturer data: %s", hex.c_str());
+      break;
     }
-    ESP_LOGD("pairing", "Manufacturer data: %s", hex.c_str());
-    break;
   }
 }
                         """
