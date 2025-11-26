@@ -1,0 +1,141 @@
+# BRMesh Bridge with Music Reactive Mode
+# ESP32 with I2S Microphone for Audio-Reactive Lighting
+# Requires: INMP441 or similar I2S MEMS microphone
+
+esphome:
+  name: brmesh-bridge-music
+  platform: ESP32
+  board: esp32dev
+  includes:
+    - fft_analyzer.h
+  libraries:
+    - "arduinoFFT"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret api_key
+
+logger:
+  level: INFO
+
+ota:
+  password: !secret ota_password
+
+# I2S Microphone Configuration
+# INMP441 pinout:
+#   SCK  -> GPIO26 (I2S bit clock)
+#   WS   -> GPIO25 (I2S word select / left-right clock)
+#   SD   -> GPIO22 (I2S data input)
+#   L/R  -> GND (left channel)
+#   VDD  -> 3.3V
+#   GND  -> GND
+
+i2s_audio:
+  i2s_lrclk_pin: GPIO25  # WS
+  i2s_bclk_pin: GPIO26   # SCK
+
+microphone:
+  - platform: i2s_audio
+    id: mic
+    adc_type: external
+    i2s_din_pin: GPIO22  # SD
+    bits_per_sample: 32bit
+    # Sample rate should match FFT requirements (typically 16kHz or 22.05kHz)
+    # Lower sample rate = less CPU usage, but captures less high frequencies
+
+# BLE for BRMesh communication
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+
+# Custom component for FFT analysis and music reactivity
+custom_component:
+  - lambda: |-
+      auto music_reactive = new MusicReactiveEffect();
+      App.register_component(music_reactive);
+      return {music_reactive};
+    components:
+      - id: music_effect
+
+# Switches to control music mode
+switch:
+  - platform: template
+    name: "Music Mode"
+    id: music_mode
+    icon: "mdi:music"
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(music_effect)->start();
+    turn_off_action:
+      - lambda: |-
+          id(music_effect)->stop();
+
+# Settings for music reactivity
+number:
+  - platform: template
+    name: "Music Sensitivity"
+    id: music_sensitivity
+    icon: "mdi:volume-high"
+    min_value: 0.1
+    max_value: 5.0
+    step: 0.1
+    initial_value: 1.0
+    mode: slider
+    set_action:
+      - lambda: |-
+          id(music_effect)->set_sensitivity(x);
+  
+  - platform: template
+    name: "Music Update Rate (Hz)"
+    id: music_update_rate
+    icon: "mdi:timer"
+    min_value: 5
+    max_value: 30
+    step: 1
+    initial_value: 10
+    mode: slider
+    set_action:
+      - lambda: |-
+          id(music_effect)->set_update_rate(x);
+
+select:
+  - platform: template
+    name: "Music Color Mode"
+    id: music_color_mode
+    icon: "mdi:palette"
+    options:
+      - "RGB Frequency"  # Bass=Red, Mid=Green, Treble=Blue
+      - "Amplitude"      # Brightness based on volume
+      - "Rainbow Cycle"  # Hue based on dominant frequency
+      - "Bass Pulse"     # Flash red on bass hits
+    initial_option: "RGB Frequency"
+    set_action:
+      - lambda: |-
+          id(music_effect)->set_color_mode(x.c_str());
+
+# Sensors for debugging
+sensor:
+  - platform: custom
+    lambda: |-
+      return {
+        id(music_effect)->get_bass_sensor(),
+        id(music_effect)->get_mid_sensor(),
+        id(music_effect)->get_treble_sensor()
+      };
+    sensors:
+      - name: "Bass Level"
+        unit_of_measurement: "%"
+        accuracy_decimals: 0
+      - name: "Mid Level"
+        unit_of_measurement: "%"
+        accuracy_decimals: 0
+      - name: "Treble Level"
+        unit_of_measurement: "%"
+        accuracy_decimals: 0

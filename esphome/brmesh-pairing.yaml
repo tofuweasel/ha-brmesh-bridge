@@ -1,0 +1,145 @@
+# BRMesh Bridge - Native Pairing Mode
+# ESP32 that can pair lights directly without phone app
+# Scans for manufacturer data 0xf0ff and pairs automatically
+
+esphome:
+  name: brmesh-pairing
+  platform: ESP32
+  board: esp32dev
+  includes:
+    - brmesh_pairing.h
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret api_key
+
+logger:
+  level: DEBUG  # Verbose logging for pairing
+
+ota:
+  password: !secret ota_password
+
+# BLE Tracker for scanning
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 320ms
+    window: 300ms
+    active: true
+    continuous: true
+  on_ble_advertise:
+    - manufacturer_id: 0xf0ff  # BRMesh manufacturer ID
+      then:
+        - lambda: |-
+            // Log the advertisement
+            ESP_LOGI("pairing", "Found BRMesh device!");
+            ESP_LOGI("pairing", "  MAC: %s", x.address_str().c_str());
+            ESP_LOGI("pairing", "  RSSI: %d dBm", x.get_rssi());
+            
+            // Parse manufacturer data (12 bytes)
+            auto mfg_data = x.get_manufacturer_data();
+            if (mfg_data.size() >= 12) {
+              ESP_LOGI("pairing", "  Manufacturer Data: %s", 
+                       format_hex_pretty(mfg_data.data(), mfg_data.size()).c_str());
+              
+              // Extract pairing info
+              // Bytes 0-5: Device ID
+              // Bytes 6-7: Light ID
+              // Bytes 8-11: Mesh Key
+              
+              std::string device_id = "";
+              for (int i = 0; i < 6; i++) {
+                char buf[3];
+                sprintf(buf, "%02x", mfg_data[i]);
+                device_id += buf;
+              }
+              
+              uint16_t light_id = (mfg_data[7] << 8) | mfg_data[6];
+              
+              std::string mesh_key = "";
+              for (int i = 8; i < 12; i++) {
+                char buf[3];
+                sprintf(buf, "%02x", mfg_data[i]);
+                mesh_key += buf;
+              }
+              
+              ESP_LOGI("pairing", "  Device ID: %s", device_id.c_str());
+              ESP_LOGI("pairing", "  Light ID: 0x%04x (%d)", light_id, light_id);
+              ESP_LOGI("pairing", "  Mesh Key: %s", mesh_key.c_str());
+              
+              // Auto-pair if pairing mode is enabled
+              if (id(pairing_mode).state) {
+                id(pairing_helper)->add_light(x.address_str().c_str(), device_id.c_str(), light_id, mesh_key.c_str());
+              }
+            }
+
+# Pairing component
+custom_component:
+  - lambda: |-
+      auto pairing = new BRMeshPairing();
+      App.register_component(pairing);
+      return {pairing};
+    components:
+      - id: pairing_helper
+
+# Controls
+switch:
+  - platform: template
+    name: "Pairing Mode"
+    id: pairing_mode
+    icon: "mdi:bluetooth-connect"
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          ESP_LOGI("pairing", "Pairing mode ENABLED - will auto-pair discovered lights");
+          id(pairing_helper)->start_pairing();
+    turn_off_action:
+      - lambda: |-
+          ESP_LOGI("pairing", "Pairing mode DISABLED");
+          id(pairing_helper)->stop_pairing();
+
+button:
+  - platform: template
+    name: "Clear Paired Lights"
+    icon: "mdi:delete"
+    on_press:
+      - lambda: |-
+          id(pairing_helper)->clear_all_lights();
+          ESP_LOGI("pairing", "All paired lights cleared");
+
+  - platform: template
+    name: "Export Configuration"
+    icon: "mdi:export"
+    on_press:
+      - lambda: |-
+          id(pairing_helper)->export_config();
+
+text_sensor:
+  - platform: template
+    name: "Pairing Status"
+    id: pairing_status
+    icon: "mdi:information"
+    lambda: |-
+      return id(pairing_helper)->get_status();
+    update_interval: 2s
+
+  - platform: template
+    name: "Paired Lights"
+    id: paired_lights_list
+    icon: "mdi:lightbulb-multiple"
+    lambda: |-
+      return id(pairing_helper)->get_paired_lights();
+    update_interval: 5s
+
+sensor:
+  - platform: template
+    name: "Paired Light Count"
+    id: light_count
+    icon: "mdi:counter"
+    accuracy_decimals: 0
+    lambda: |-
+      return id(pairing_helper)->get_light_count();
+    update_interval: 2s

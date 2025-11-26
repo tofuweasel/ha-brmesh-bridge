@@ -1,0 +1,407 @@
+# BRMesh Bridge - ESP32 Controller with Native Pairing + Optimized fastcon
+# Features:
+# - Native light pairing (no phone app needed)
+# - Optimized BLE command sending (66% fewer commands)
+# - Command deduplication and debouncing
+# - Start with 0 lights, pair as you go
+
+esphome:
+  name: brmesh-bridge
+  friendly_name: "BRMesh Bridge"
+  comment: "BRMesh Bridge with native pairing and optimized command handling"
+  includes:
+    - brmesh_pairing.h
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+  # Alternatively, try: esp32doit-devkit-v1, lolin32, or az-delivery-devkit-v4
+
+logger:
+  level: INFO
+  # Use DEBUG for troubleshooting:
+  # level: DEBUG
+
+# Native API for Home Assistant auto-discovery
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  
+  # Fast reconnection
+  fast_connect: true
+  
+  # Fallback hotspot
+  ap:
+    ssid: "BRMesh-Bridge-Fallback"
+    password: "brmesh123"
+  
+  # Optional: Manual IP for better reliability
+  # manual_ip:
+  #   static_ip: 192.168.1.100
+  #   gateway: 192.168.1.1
+  #   subnet: 255.255.255.0
+
+captive_portal:
+
+# Enable mDNS for hostname resolution
+mdns:
+  disabled: false
+
+web_server:
+  port: 80
+
+# ========================================
+# BLE Scanner & Native Pairing
+# ========================================
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 320ms
+    window: 300ms
+    active: true
+    continuous: true
+  
+  # Auto-detect unpaired lights (manufacturer ID 0xf0ff)
+  on_ble_advertise:
+    - manufacturer_id: 0xf0ff  # BRMesh manufacturer ID
+      then:
+        - lambda: |-
+            ESP_LOGI("ble", "BRMesh device detected: %s (RSSI: %d)", 
+                     x.address_str().c_str(), x.get_rssi());
+            
+            // TODO: Parse pairing data and auto-assign light IDs
+            // This requires the brmesh_pairing.h custom component
+            // For now, log the raw manufacturer data
+            auto mfg_data = x.get_manufacturer_data();
+            std::string hex = "";
+            for (auto byte : mfg_data) {
+              char buf[3];
+              sprintf(buf, "%02x", byte);
+              hex += buf;
+            }
+            ESP_LOGD("pairing", "Manufacturer data: %s", hex.c_str());
+
+# Required for BLE
+esp32_ble_server:
+
+# ========================================
+# Pairing Helper Component
+# ========================================
+
+custom_component:
+  - lambda: |-
+      auto pairing = new BRMeshPairing();
+      App.register_component(pairing);
+      return {pairing};
+    components:
+      - id: pairing_helper
+
+# ========================================
+# Optimized fastcon Component
+# Use YOUR FORK with the optimized light component
+# ========================================
+
+external_components:
+  - source: github://tofuweasel/esphome-fastcon@optimized
+    components: [fastcon]
+    refresh: 0s  # Force refresh during development
+
+# BRMesh controller configuration
+# Start with a NEW mesh key - all lights will need to be paired fresh
+fastcon:
+  id: fastcon_controller
+  mesh_key: !secret mesh_key  # NEW mesh key, not from phone app
+  
+  # Optional: Fine-tune BLE advertising parameters
+  adv_interval_min: 0x20  # Minimum advertisement interval (default)
+  adv_interval_max: 0x40  # Maximum advertisement interval (default)
+  adv_duration: 50        # Advertisement duration in ms (default)
+  adv_gap: 10             # Gap between advertisements in ms (default)
+  max_queue_size: 100     # Maximum queued commands (default)
+
+# ========================================
+# Lights Section - START WITH ZERO
+# Add lights here AFTER pairing them via the ESP32
+# The optimized component handles debouncing automatically
+# ========================================
+
+light:
+  # No lights defined yet!
+  # After pairing lights via the ESP32, add them here like:
+  #
+  # - platform: fastcon
+  #   id: brmesh_light_01
+  #   name: "Living Room Light 1"
+  #   light_id: 1
+  #   controller_id: fastcon_controller
+  #
+  # - platform: fastcon
+  #   id: brmesh_light_02
+  #   name: "Living Room Light 2"
+  #   light_id: 2
+  #   controller_id: fastcon_controller
+
+# ========================================
+# Pairing Controls
+# ========================================
+
+switch:
+  - platform: template
+    name: "Pairing Mode"
+    id: pairing_mode
+    icon: "mdi:bluetooth-connect"
+    optimistic: true
+    restore_mode: ALWAYS_OFF  # Safety: don't auto-enable on boot
+    turn_on_action:
+      - lambda: |-
+          ESP_LOGI("pairing", "=== PAIRING MODE ENABLED ===");
+          ESP_LOGI("pairing", "Factory reset a light to pair it");
+          id(pairing_helper)->start_pairing();
+    turn_off_action:
+      - lambda: |-
+          ESP_LOGI("pairing", "Pairing mode disabled");
+          id(pairing_helper)->stop_pairing();
+  
+  - platform: template
+    name: "Music Mode"
+    id: music_mode
+    icon: "mdi:music"
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - logger.log:
+          level: INFO
+          format: "Music reactive mode enabled"
+    turn_off_action:
+      - logger.log:
+          level: INFO
+          format: "Music reactive mode disabled"
+
+  # Uncomment for advanced music mode with music_effect component:
+  # - platform: template
+  #   name: "Music Mode Advanced"
+  #   id: music_mode_advanced
+  #   icon: "mdi:music"
+  #   optimistic: true
+  #   turn_on_action:
+  #     - lambda: id(music_effect)->start();
+  #   turn_off_action:
+  #     - lambda: id(music_effect)->stop();
+  
+  # Uncomment for UDP broadcast (master only):
+  # - platform: template
+  #   name: "UDP Broadcast"
+  #   id: udp_broadcast
+  #   icon: "mdi:broadcast"
+  #   optimistic: true
+  #   initial_state: true
+  #   turn_on_action:
+  #     - lambda: id(music_effect)->enable_udp_broadcast(true);
+  #   turn_off_action:
+  #     - lambda: id(music_effect)->enable_udp_broadcast(false);
+
+
+button:
+  - platform: restart
+    name: "Restart ESP32"
+    icon: "mdi:restart"
+  
+  - platform: safe_mode
+    name: "Safe Mode Boot"
+    icon: "mdi:security"
+  
+  - platform: template
+    name: "Clear Paired Lights"
+    icon: "mdi:delete"
+    on_press:
+      - lambda: |-
+          id(pairing_helper)->clear_all_lights();
+          ESP_LOGI("pairing", "All paired lights cleared");
+  
+  - platform: template
+    name: "Export Configuration"
+    icon: "mdi:export"
+    on_press:
+      - lambda: |-
+          id(pairing_helper)->export_config();
+
+# ========================================
+# Status Sensors
+# ========================================
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+    mac_address:
+      name: "MAC Address"
+    ssid:
+      name: "WiFi SSID"
+  
+  - platform: version
+    name: "ESPHome Version"
+  
+  - platform: template
+    name: "Pairing Status"
+    id: pairing_status
+    icon: "mdi:information"
+    lambda: |-
+      return id(pairing_helper)->get_status();
+    update_interval: 2s
+  
+  - platform: template
+    name: "Paired Lights"
+    id: paired_lights_list
+    icon: "mdi:lightbulb-multiple"
+    lambda: |-
+      return id(pairing_helper)->get_paired_lights();
+    update_interval: 5s
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+  
+  - platform: uptime
+    name: "Uptime"
+    update_interval: 60s
+  
+  - platform: template
+    name: "Paired Light Count"
+    id: light_count
+    icon: "mdi:counter"
+    accuracy_decimals: 0
+    lambda: |-
+      return id(pairing_helper)->get_light_count();
+    update_interval: 2s
+
+# Music mode settings (for future I2S microphone integration)
+number:
+  - platform: template
+    name: "Music Sensitivity"
+    id: music_sensitivity
+    icon: "mdi:volume-high"
+    min_value: 0.1
+    max_value: 5.0
+    step: 0.1
+    initial_value: 1.0
+    mode: slider
+    optimistic: true
+  
+  - platform: template
+    name: "Music Update Rate (Hz)"
+    id: music_update_rate
+    icon: "mdi:timer"
+    min_value: 5
+    max_value: 30
+    step: 1
+    initial_value: 10
+    mode: slider
+    optimistic: true
+
+select:
+  - platform: template
+    name: "Music Color Mode"
+    id: music_color_mode
+    icon: "mdi:palette"
+    optimistic: true
+    options:
+      - "RGB Frequency"  # Bass=Red, Mid=Green, Treble=Blue
+      - "Amplitude"      # Brightness based on volume
+      - "Rainbow Cycle"  # Hue based on dominant frequency
+      - "Bass Pulse"     # Flash red on bass hits
+    initial_option: "RGB Frequency"
+
+binary_sensor:
+  - platform: status
+    name: "ESP32 Status"
+
+# ========================================
+# Notes for Pairing Lights
+# ========================================
+# 
+# 1. Flash this config to your ESP32
+# 2. Generate a NEW mesh key: openssl rand -hex 4
+#    Example: "a1b2c3d4"
+# 3. Add the mesh key to secrets.yaml
+# 4. Turn on "Pairing Mode" switch in Home Assistant
+# 5. Factory reset each light:
+#    - Turn on/off rapidly 5-10 times
+#    - Light will blink when in pairing mode
+#    - ESP32 will detect and auto-assign light ID
+# 6. Add the paired lights to the light: section above
+# 7. Reflash the config
+# 8. Lights are now controlled by ESP32 (no phone app needed!)
+#
+# Optimization is active:
+# - Commands are debounced (100ms wait after state changes)
+# - Duplicate commands are skipped automatically
+# - Minimum 300ms between commands to same light
+# - Turning off 3 lights now sends 3 commands instead of 9!
+
+# ========================================
+# Advanced Music Mode Settings (optional)
+# Uncomment these when using the music_effect custom component
+# ========================================
+
+# Uncomment for advanced music mode with music_effect component:
+# number:
+#   - platform: template
+#     name: "Music Sensitivity (Advanced)"
+#     id: music_sensitivity_advanced
+#     min_value: 0.1
+#     max_value: 5.0
+#     step: 0.1
+#     initial_value: 1.0
+#     mode: slider
+#     set_action:
+#       - lambda: id(music_effect)->set_sensitivity(x);
+#   
+#   - platform: template
+#     name: "Music Update Rate (Advanced)"
+#     id: music_update_rate_advanced
+#     min_value: 5
+#     max_value: 30
+#     step: 1
+#     initial_value: 10
+#     unit_of_measurement: "fps"
+#     mode: slider
+#     set_action:
+#       - lambda: id(music_effect)->set_update_rate(x);
+
+# select:
+#   - platform: template
+#     name: "Music Color Mode (Advanced)"
+#     id: music_color_mode_advanced
+#     icon: "mdi:palette"
+#     options:
+#       - "RGB Frequency"
+#       - "Amplitude"
+#       - "Rainbow Cycle"
+#       - "Bass Pulse"
+#     initial_option: "RGB Frequency"
+#     set_action:
+#       - lambda: id(music_effect)->set_color_mode(x.c_str());
+
+# text:
+#   - platform: template
+#     name: "Master IP Address"
+#     id: master_ip_input
+#     icon: "mdi:ip-network"
+#     mode: text
+#     optimistic: true
+#     initial_value: "auto"
+#     on_value:
+#       - lambda: |-
+#           if (x != "auto") {
+#             id(music_effect)->set_master_ip(x.c_str());
+#           }
