@@ -91,6 +91,7 @@ class BRMeshBridge:
             'mqtt_password': '',
             'discovery_enabled': True,
             'generate_esphome_configs': True,
+            'use_optimized_fork': True,  # Use optimized fastcon fork with command deduplication
             'enable_ble_discovery': True,
             'enable_nspanel_ui': False,
             'nspanel_entity_id': '',
@@ -486,7 +487,8 @@ class BRMeshBridge:
         logger.info(f"  🎮 {len(self.controllers)} controllers configured")
         logger.info(f"  📶 BLE Discovery: {'Enabled' if self.config.get('enable_ble_discovery') else 'Disabled'}")
         logger.info(f"  ⚙️  ESPHome Configs: {'Enabled' if self.config.get('generate_esphome_configs') else 'Disabled'}")
-        logger.info(f"  📱 NSPanel UI: {'Enabled' if self.config.get('enable_nspanel_ui') else 'Disabled'}")
+        logger.info(f"  � Optimized Fork: {'Enabled' if self.config.get('use_optimized_fork') else 'Disabled'}")
+        logger.info(f"  �📱 NSPanel UI: {'Enabled' if self.config.get('enable_nspanel_ui') else 'Disabled'}")
         logger.info("=" * 80)
         logger.info("📋 Copy logs from the line above (80 = characters) for troubleshooting")
         logger.info("=" * 80)

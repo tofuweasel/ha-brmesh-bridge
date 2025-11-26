@@ -26,11 +26,15 @@ class ESPHomeConfigGenerator:
         yaml.default_flow_style = False
         return yaml
     
-    def generate_controller_config(self, controller: Dict) -> str:
+    def generate_controller_config(self, controller: Dict, use_optimized: bool = True) -> str:
         """Generate ESPHome YAML config for a controller
         
         In a mesh network, all controllers can control all lights,
         so we include all lights in every controller config.
+        
+        Args:
+            controller: Controller configuration dictionary
+            use_optimized: Use optimized fork with command deduplication (default: True)
         """
         controller_name = controller['name'].lower().replace(' ', '-')
         
@@ -76,23 +80,78 @@ class ESPHomeConfigGenerator:
             },
             'web_server': {
                 'port': 80
-            },
-            'esp32_ble_server': {},
-            'external_components': [{
+            }
+        }
+        
+        # Use optimized fork with command deduplication if enabled
+        if use_optimized:
+            config['esp32_ble_tracker'] = {
+                'on_ble_advertise': [{
+                    'then': [{
+                        'lambda': """
+                          // Log all BLE devices for debugging
+                          if (x.get_manufacturer_data().size() > 0) {
+                            auto mfg_data = x.get_manufacturer_data();
+                            ESP_LOGI("ble", "BLE Device: %s, RSSI: %d, Mfg Data size: %d", 
+                                     x.get_name().c_str(), x.get_rssi(), mfg_data.size());
+                            
+                            // Check for BRMesh lights (manufacturer_id: 0xf0ff)
+                            for (auto data : mfg_data) {
+                              if (data.uuid.get_uuid().uuid.uuid16 == 0xf0ff) {
+                                ESP_LOGW("pairing", "Found unpaired BRMesh light: %s (RSSI: %d)", 
+                                         x.get_name().c_str(), x.get_rssi());
+                                // TODO: Parse manufacturer data to extract device info
+                                // TODO: Auto-assign light_id when pairing mode is active
+                              }
+                            }
+                          }
+                        """
+                    }]
+                }]
+            }
+            config['external_components'] = [{
+                'source': 'github://tofuweasel/esphome-fastcon@optimized',
+                'components': ['fastcon']
+            }]
+            config['switch'] = [{
+                'platform': 'template',
+                'name': 'Pairing Mode',
+                'id': 'pairing_mode',
+                'optimistic': True,
+                'turn_on_action': [{
+                    'logger.log': {
+                        'format': 'Pairing mode enabled - waiting for unpaired lights...',
+                        'level': 'WARN'
+                    }
+                }],
+                'turn_off_action': [{
+                    'logger.log': {
+                        'format': 'Pairing mode disabled',
+                        'level': 'INFO'
+                    }
+                }]
+            }]
+        else:
+            config['esp32_ble_server'] = {}
+            config['external_components'] = [{
                 'source': 'github://scross01/esphome-fastcon@dev',
                 'components': ['fastcon']
-            }],
-            'fastcon': {
-                'mesh_key': self.bridge.config.get('mesh_key', '30323336')
-            },
-            'light': []
+            }]
+        
+        config['fastcon'] = {
+            'mesh_key': self.bridge.config.get('mesh_key', '30323336')
         }
+        config['light'] = []
         
         # Add ALL lights - this is a mesh network after all!
         # If no lights configured yet, add them from config
         lights_to_add = []
         
-        if self.bridge.lights:
+        if use_optimized and not self.bridge.lights:
+            # Optimized mode starts with 0 lights - user pairs them manually
+            # Lights should be added to the config as they're paired
+            pass
+        elif self.bridge.lights:
             # Use configured lights
             for light_id, light in self.bridge.lights.items():
                 lights_to_add.append({
@@ -102,7 +161,7 @@ class ESPHomeConfigGenerator:
                     'supports_cwww': light.get('supports_cwww', False)
                 })
         else:
-            # No lights configured yet - check controller's light count
+            # Standard mode - no lights configured yet, add default count
             num_lights = controller.get('num_lights', 15)  # Default to 15
             for i in range(1, num_lights + 1):
                 lights_to_add.append({
@@ -120,9 +179,12 @@ class ESPHomeConfigGenerator:
                 'id': f"brmesh_light_{light_id:02d}",
                 'name': light_data['name'],
                 'light_id': light_id,
-                'color_interlock': light_data['color_interlock'],
-                'throttle': '300ms'  # Prevent command queue overflow
+                'color_interlock': light_data['color_interlock']
             }
+            
+            # Only add throttle in standard mode - optimized mode has it built-in
+            if not use_optimized:
+                light_config['throttle'] = '300ms'  # Prevent command queue overflow
             
             if light_data.get('supports_cwww'):
                 light_config['supports_cwww'] = True
@@ -179,17 +241,41 @@ class ESPHomeConfigGenerator:
         yaml_output = re.sub(r"'(!secret [^']+)'", r'\1', yaml_output)
         yaml_output = re.sub(r'"(!secret [^"]+)"', r'\1', yaml_output)
         
+        # Add helpful comment for optimized mode if no lights configured
+        if use_optimized and not lights_to_add:
+            light_template = """
+# To add lights after pairing, uncomment and modify the template below:
+# - platform: fastcon
+#   id: brmesh_light_01
+#   name: "Living Room Light"
+#   light_id: 1
+#   color_interlock: true
+#   # supports_cwww: false  # Set to true for tunable white lights
+
+# Example: Add more lights by incrementing light_id
+# - platform: fastcon
+#   id: brmesh_light_02
+#   name: "Kitchen Light"
+#   light_id: 2
+#   color_interlock: true
+"""
+            # Insert the template comment after the light: [] line
+            yaml_output = yaml_output.replace('light: []', 'light: []' + light_template)
+        
         return yaml_output
     
     def generate_all_configs(self) -> Dict[str, str]:
         """Generate configs for all controllers"""
         configs = {}
         
+        # Check if optimized mode is enabled (default: True)
+        use_optimized = self.bridge.config.get('use_optimized_fork', True)
+        
         for controller in self.bridge.controllers:
             controller_name = controller['name']
             
             # Generate config with ALL lights (mesh network!)
-            yaml_config = self.generate_controller_config(controller)
+            yaml_config = self.generate_controller_config(controller, use_optimized=use_optimized)
             configs[controller_name] = yaml_config
             
             # Save to file
