@@ -1,0 +1,11 @@
+INFO ESPHome 2025.11.1
+INFO Reading configuration brmesh-controller-new.yaml...
+INFO Cloning https://github.com/scross01/esphome-fastcon.git@dev
+INFO Fetching dev
+Failed config
+
+api: [source brmesh-controller-new.yaml:16]
+  encryption: 
+    
+    Invalid key format, please check it's using base64.
+    key: REPLACE_WITH_YOUR_KEY

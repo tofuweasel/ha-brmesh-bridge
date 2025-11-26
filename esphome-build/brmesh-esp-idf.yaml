@@ -1,0 +1,102 @@
+esphome:
+  name: brmesh-controller-new
+  friendly_name: BRMesh Controller
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    version: recommended
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: "jtP3TVx66fxywVOSOambyyM+EWilR+AkPwaR5Orogog="
+
+ota:
+  - platform: esphome
+    password: "brmesh2024"
+
+wifi:
+  ssid: "IoT"
+  password: "Zaq12wsx"
+  ap:
+    ssid: "BRMesh-Fallback"
+    password: "brmesh123"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+esp32_ble_server:
+
+external_components:
+  - source: github://scross01/esphome-fastcon@dev
+    components: [fastcon]
+
+fastcon:
+  mesh_key: "30323336"
+
+light:
+  - platform: fastcon
+    id: brmesh_light_1
+    name: "BRMesh Light 1"
+    light_id: 1
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_2
+    name: "BRMesh Light 2"
+    light_id: 2
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_3
+    name: "BRMesh Light 3"
+    light_id: 3
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_4
+    name: "BRMesh Light 4"
+    light_id: 4
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_5
+    name: "BRMesh Light 5"
+    light_id: 5
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_6
+    name: "BRMesh Light 6"
+    light_id: 6
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_7
+    name: "BRMesh Light 7"
+    light_id: 7
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_8
+    name: "BRMesh Light 8"
+    light_id: 8
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_9
+    name: "BRMesh Light 9"
+    light_id: 9
+    color_interlock: true
+  
+  - platform: fastcon
+    id: brmesh_light_10
+    name: "BRMesh Light 10"
+    light_id: 10
+    color_interlock: true
