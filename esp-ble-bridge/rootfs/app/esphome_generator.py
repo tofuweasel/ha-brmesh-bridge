@@ -36,7 +36,7 @@ class ESPHomeConfigGenerator:
             controller: Controller configuration dictionary
             use_optimized: Use optimized fork with command deduplication (default: True)
         """
-        controller_name = controller['name'].lower().replace(' ', '-')
+        controller_name = controller['name'].lower().replace(' ', '_').replace('-', '_')
         
         # Base WiFi config with DHCP by default
         wifi_config = {

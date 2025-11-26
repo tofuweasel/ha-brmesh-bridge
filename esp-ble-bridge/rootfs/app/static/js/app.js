@@ -570,9 +570,10 @@ function renderControllers() {
                 ${controller.esphome_path ? `<div>📄 ${controller.esphome_path}</div>` : ''}
             </div>
             <div class="controller-actions">
+                <button class="btn btn-secondary btn-sm" onclick="regenerateYAML('${controllerName}')" title="Regenerate ESPHome YAML">🔄 Regenerate YAML</button>
                 <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
                 <button class="btn btn-success" onclick="window.open('/5c53de3b_esphome/ingress', '_blank')">🔧 Open ESPHome</button>
-                <button class="btn btn-danger btn-sm" onclick="resetController('${controllerName}')" title="Reset this controller">🔄 Reset</button>
+                <button class="btn btn-danger btn-sm" onclick="resetController('${controllerName}')" title="Reset this controller">🗑️ Reset</button>
             </div>
         `;
         
@@ -1863,6 +1864,29 @@ async function unpairLight(lightId, lightName) {
     } catch (error) {
         console.error('Unpair error:', error);
         showNotification(`❌ Failed to remove light: ${error.message}`, 'error');
+    }
+}
+
+async function regenerateYAML(controllerName) {
+    try {
+        showNotification(`Regenerating YAML for ${controllerName}...`, 'info');
+        const response = await fetch(`/api/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}) // Triggers YAML regeneration
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(`✅ YAML regenerated for ${controllerName}`, 'success');
+            await loadControllers();
+        } else {
+            showNotification(`❌ Regeneration failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Regenerate YAML error:', error);
+        showNotification(`❌ Failed to regenerate YAML: ${error.message}`, 'error');
     }
 }
 
