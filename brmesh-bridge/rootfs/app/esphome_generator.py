@@ -69,9 +69,14 @@ class ESPHomeConfigGenerator:
             'logger': {
                 'level': 'INFO'
             },
-            'api': {},  # Native API for auto-discovery
+            'api': {
+                'encryption': {
+                    'key': '!secret api_encryption_key'
+                }
+            },
             'ota': [{
-                'platform': 'esphome'
+                'platform': 'esphome',
+                'password': '!secret ota_password'
             }],
             'wifi': wifi_config,
             'captive_portal': {},
@@ -86,51 +91,85 @@ class ESPHomeConfigGenerator:
         # Use optimized fork with command deduplication if enabled
         if use_optimized:
             config['esp32_ble_tracker'] = {
+                'scan_parameters': {
+                    'interval': '320ms',
+                    'window': '300ms',
+                    'active': True,
+                    'continuous': True
+                },
                 'on_ble_advertise': [{
+                    'manufacturer_id': '0xf0ff',
                     'then': [{
                         'lambda': """
-                          // Log all BLE devices for debugging
-                          if (x.get_manufacturer_data().size() > 0) {
-                            auto mfg_data = x.get_manufacturer_data();
-                            ESP_LOGI("ble", "BLE Device: %s, RSSI: %d, Mfg Data size: %d", 
-                                     x.get_name().c_str(), x.get_rssi(), mfg_data.size());
-                            
-                            // Check for BRMesh lights (manufacturer_id: 0xf0ff)
-                            for (auto data : mfg_data) {
-                              if (data.uuid.get_uuid().uuid.uuid16 == 0xf0ff) {
-                                ESP_LOGW("pairing", "Found unpaired BRMesh light: %s (RSSI: %d)", 
-                                         x.get_name().c_str(), x.get_rssi());
-                                // TODO: Parse manufacturer data to extract device info
-                                // TODO: Auto-assign light_id when pairing mode is active
-                              }
-                            }
-                          }
+ESP_LOGI("ble", "BRMesh device detected: %s (RSSI: %d)", 
+         x.address_str().c_str(), x.get_rssi());
+
+// Log the raw manufacturer data
+auto mfg_data = x.get_manufacturer_data();
+std::string hex = "";
+for (auto byte : mfg_data) {
+  char buf[3];
+  sprintf(buf, "%02x", byte);
+  hex += buf;
+}
+ESP_LOGD("pairing", "Manufacturer data: %s", hex.c_str());
                         """
                     }]
                 }]
             }
+            config['esp32_ble_server'] = {}
             config['external_components'] = [{
                 'source': 'github://tofuweasel/esphome-fastcon@optimized',
-                'components': ['fastcon']
+                'components': ['fastcon'],
+                'refresh': '0s'
             }]
-            config['switch'] = [{
-                'platform': 'template',
-                'name': 'Pairing Mode',
-                'id': 'pairing_mode',
-                'optimistic': True,
-                'turn_on_action': [{
-                    'logger.log': {
-                        'format': 'Pairing mode enabled - waiting for unpaired lights...',
-                        'level': 'WARN'
-                    }
-                }],
-                'turn_off_action': [{
-                    'logger.log': {
-                        'format': 'Pairing mode disabled',
-                        'level': 'INFO'
-                    }
-                }]
-            }]
+            config['switch'] = [
+                {
+                    'platform': 'template',
+                    'name': 'Pairing Mode',
+                    'id': 'pairing_mode',
+                    'icon': 'mdi:bluetooth-connect',
+                    'optimistic': True,
+                    'restore_mode': 'ALWAYS_OFF',
+                    'turn_on_action': [{
+                        'logger.log': {
+                            'format': '=== PAIRING MODE ENABLED ===',
+                            'level': 'WARN'
+                        }
+                    }, {
+                        'logger.log': {
+                            'format': 'Factory reset a light to pair it',
+                            'level': 'INFO'
+                        }
+                    }],
+                    'turn_off_action': [{
+                        'logger.log': {
+                            'format': 'Pairing mode disabled',
+                            'level': 'INFO'
+                        }
+                    }]
+                },
+                {
+                    'platform': 'template',
+                    'name': 'Music Mode',
+                    'id': 'music_mode',
+                    'icon': 'mdi:music',
+                    'optimistic': True,
+                    'restore_mode': 'ALWAYS_OFF',
+                    'turn_on_action': [{
+                        'logger.log': {
+                            'level': 'INFO',
+                            'format': 'Music reactive mode enabled'
+                        }
+                    }],
+                    'turn_off_action': [{
+                        'logger.log': {
+                            'level': 'INFO',
+                            'format': 'Music reactive mode disabled'
+                        }
+                    }]
+                }
+            ]
         else:
             config['esp32_ble_server'] = {}
             config['external_components'] = [{
@@ -139,7 +178,8 @@ class ESPHomeConfigGenerator:
             }]
         
         config['fastcon'] = {
-            'mesh_key': self.bridge.config.get('mesh_key', '30323336')
+            'id': 'fastcon_controller',
+            'mesh_key': '!secret mesh_key'
         }
         config['light'] = []
         
@@ -192,11 +232,16 @@ class ESPHomeConfigGenerator:
             config['light'].append(light_config)
         
         # Add monitoring sensors
-        config['text_sensor'] = [
+        text_sensors = [
             {
                 'platform': 'wifi_info',
                 'ip_address': {'name': 'IP Address'},
-                'mac_address': {'name': 'MAC Address'}
+                'mac_address': {'name': 'MAC Address'},
+                'ssid': {'name': 'WiFi SSID'}
+            },
+            {
+                'platform': 'version',
+                'name': 'ESPHome Version'
             }
         ]
         
@@ -208,16 +253,75 @@ class ESPHomeConfigGenerator:
             },
             {
                 'platform': 'uptime',
-                'name': 'Uptime'
+                'name': 'Uptime',
+                'update_interval': '60s'
             }
         ]
         
-        config['button'] = [
+        buttons = [
             {
                 'platform': 'restart',
-                'name': 'Restart'
+                'name': 'Restart ESP32',
+                'icon': 'mdi:restart'
+            },
+            {
+                'platform': 'safe_mode',
+                'name': 'Safe Mode Boot',
+                'icon': 'mdi:security'
             }
         ]
+        
+        config['binary_sensor'] = [
+            {
+                'platform': 'status',
+                'name': 'ESP32 Status'
+            }
+        ]
+        
+        # Add extra features in optimized mode
+        if use_optimized:
+            # Music mode controls
+            config['number'] = [
+                {
+                    'platform': 'template',
+                    'name': 'Music Sensitivity',
+                    'id': 'music_sensitivity',
+                    'icon': 'mdi:volume-high',
+                    'min_value': 0.1,
+                    'max_value': 5.0,
+                    'step': 0.1,
+                    'initial_value': 1.0,
+                    'mode': 'slider',
+                    'optimistic': True
+                },
+                {
+                    'platform': 'template',
+                    'name': 'Music Update Rate (Hz)',
+                    'id': 'music_update_rate',
+                    'icon': 'mdi:timer',
+                    'min_value': 5,
+                    'max_value': 30,
+                    'step': 1,
+                    'initial_value': 10,
+                    'mode': 'slider',
+                    'optimistic': True
+                }
+            ]
+            
+            config['select'] = [
+                {
+                    'platform': 'template',
+                    'name': 'Music Color Mode',
+                    'id': 'music_color_mode',
+                    'icon': 'mdi:palette',
+                    'optimistic': True,
+                    'options': ['RGB Frequency', 'Amplitude', 'Rainbow Cycle', 'Bass Pulse'],
+                    'initial_option': 'RGB Frequency'
+                }
+            ]
+        
+        config['text_sensor'] = text_sensors
+        config['button'] = buttons
         
         # Use PyYAML with custom representer that doesn't quote !secret tags
         import yaml
