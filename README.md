@@ -1,4 +1,4 @@
-# BRMesh Bridge Home Assistant Add-on Repository
+# ESP BLE Bridge Home Assistant Add-on Repository
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]
@@ -6,11 +6,11 @@
 ![Supports armv7 Architecture][armv7-shield]
 ![Supports i386 Architecture][i386-shield]
 
-Bridge BRMesh/Fastcon BLE lights to Home Assistant with GUI configuration, BLE discovery, effects engine, and phone-free operation.
+Bridge Fastcon/BRMesh protocol BLE lights to Home Assistant with GUI configuration, BLE discovery, effects engine, and phone-free operation.
 
 ## About
 
-This repository contains the BRMesh Bridge add-on for Home Assistant, which enables control of BRMesh/Fastcon protocol BLE lights through MQTT, with advanced features including:
+This repository contains the ESP BLE Bridge add-on for Home Assistant, which enables control of Fastcon/BRMesh protocol BLE lights through MQTT, with advanced features including:
 
 - **GUI Configuration** - All settings through web interface, no YAML editing required
 - **BLE Discovery** - Find lights without the phone app
@@ -24,9 +24,9 @@ This repository contains the BRMesh Bridge add-on for Home Assistant, which enab
 
 This repository contains the following add-on:
 
-### [BRMesh Bridge Pro](./brmesh-bridge)
+### [ESP BLE Bridge](./esp-ble-bridge)
 
-Control BRMesh/Fastcon BLE lights through Home Assistant with advanced features and GUI configuration.
+Control Fastcon/BRMesh protocol BLE lights through Home Assistant with advanced features and GUI configuration.
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]
@@ -38,15 +38,15 @@ Control BRMesh/Fastcon BLE lights through Home Assistant with advanced features 
 
 1. Click the button below to add this repository to Home Assistant:
 
-   [![Add Repository](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/tofuweasel/ha-brmesh-bridge)
+   [![Add Repository](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https://github.com/tofuweasel/ha-esp-ble-bridge)
 
    Or manually:
    - Go to **Settings** → **Add-ons** → **Add-on Store**
    - Click **⋮** (menu) → **Repositories**
-   - Add: `https://github.com/tofuweasel/ha-brmesh-bridge`
+   - Add: `https://github.com/tofuweasel/ha-esp-ble-bridge`
    - Click **Add** → **Close**
 
-2. Find "BRMesh Bridge Pro" in the add-on store and click **Install**
+2. Find "ESP BLE Bridge" in the add-on store and click **Install**
 
 3. Start the add-on and open the Web UI to configure
 

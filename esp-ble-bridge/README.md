@@ -1,6 +1,6 @@
-# BRMesh Bridge Add-on
+# ESP BLE Bridge
 
-Bridge your BRMesh lights to Home Assistant with dynamic light management.
+Control Fastcon/BRMesh protocol BLE lights through Home Assistant with dynamic light management.
 
 ## Features
 
