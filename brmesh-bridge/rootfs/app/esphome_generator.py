@@ -37,16 +37,19 @@ class ESPHomeConfigGenerator:
         # Base WiFi config with DHCP by default
         wifi_config = {
             'ssid': '!secret wifi_ssid',
-            'password': '!secret wifi_password'
+            'password': '!secret wifi_password',
+            'ap': {
+                'ssid': f'{controller_name.title()}-Fallback',
+                'password': 'brmesh123'
+            }
         }
         
         # Only add static IP if explicitly provided
         if controller.get('ip_address'):
-            wifi_config['manual_ip'] = {
-                'static_ip': controller['ip_address'],
-                'gateway': '!secret gateway',
-                'subnet': '!secret subnet'
-            }
+            wifi_config['use_address'] = controller['ip_address']
+        else:
+            # Use mDNS hostname by default
+            wifi_config['use_address'] = f'{controller_name}.local'
         
         config = {
             'esphome': {
@@ -59,35 +62,26 @@ class ESPHomeConfigGenerator:
                     'type': 'arduino'
                 }
             },
-            'wifi': wifi_config,
-            'captive_portal': {},
-            'web_server': {
-                'port': 80
-            },
-            'mqtt': {
-                'broker': 'core-mosquitto',
-                'discovery': True,
-                'discovery_prefix': 'homeassistant',
-                'birth_message': {
-                    'topic': f'brmesh-bridge/{controller_name}/status',
-                    'payload': 'online'
-                },
-                'will_message': {
-                    'topic': f'brmesh-bridge/{controller_name}/status',
-                    'payload': 'offline'
-                }
-            },
-            'ota': [{
-                'platform': 'esphome'
-            }],
             'logger': {
                 'level': 'INFO'
             },
+            'api': {},  # Native API for auto-discovery
+            'ota': [{
+                'platform': 'esphome'
+            }],
+            'wifi': wifi_config,
+            'captive_portal': {},
+            'mdns': {
+                'disabled': False
+            },
+            'web_server': {
+                'port': 80
+            },
+            'esp32_ble_server': {},
             'external_components': [{
                 'source': 'github://scross01/esphome-fastcon@dev',
                 'components': ['fastcon']
             }],
-            'esp32_ble_server': {},
             'fastcon': {
                 'mesh_key': self.bridge.config.get('mesh_key', '30323336')
             },
@@ -95,19 +89,72 @@ class ESPHomeConfigGenerator:
         }
         
         # Add ALL lights - this is a mesh network after all!
-        for light_id, light in self.bridge.lights.items():
+        # If no lights configured yet, add them from config
+        lights_to_add = []
+        
+        if self.bridge.lights:
+            # Use configured lights
+            for light_id, light in self.bridge.lights.items():
+                lights_to_add.append({
+                    'light_id': light_id,
+                    'name': light['name'],
+                    'color_interlock': light.get('color_interlock', True),
+                    'supports_cwww': light.get('supports_cwww', False)
+                })
+        else:
+            # No lights configured yet - check controller's light count
+            num_lights = controller.get('num_lights', 15)  # Default to 15
+            for i in range(1, num_lights + 1):
+                lights_to_add.append({
+                    'light_id': i,
+                    'name': f'BRMesh Light {i:02d}',
+                    'color_interlock': True,
+                    'supports_cwww': False
+                })
+        
+        # Generate light configs
+        for light_data in lights_to_add:
+            light_id = light_data['light_id']
             light_config = {
                 'platform': 'fastcon',
-                'id': f"brmesh_light_{light_id}",
-                'name': light['name'],
+                'id': f"brmesh_light_{light_id:02d}",
+                'name': light_data['name'],
                 'light_id': light_id,
-                'color_interlock': light.get('color_interlock', True)
+                'color_interlock': light_data['color_interlock']
             }
             
-            if light.get('supports_cwww'):
+            if light_data.get('supports_cwww'):
                 light_config['supports_cwww'] = True
             
             config['light'].append(light_config)
+        
+        # Add monitoring sensors
+        config['text_sensor'] = [
+            {
+                'platform': 'wifi_info',
+                'ip_address': {'name': 'IP Address'},
+                'mac_address': {'name': 'MAC Address'}
+            }
+        ]
+        
+        config['sensor'] = [
+            {
+                'platform': 'wifi_signal',
+                'name': 'WiFi Signal',
+                'update_interval': '60s'
+            },
+            {
+                'platform': 'uptime',
+                'name': 'Uptime'
+            }
+        ]
+        
+        config['button'] = [
+            {
+                'platform': 'restart',
+                'name': 'Restart'
+            }
+        ]
         
         # Use PyYAML with custom representer that doesn't quote !secret tags
         import yaml
