@@ -719,7 +719,7 @@ async function createController() {
             
             <div class="form-group">
                 <label for="controller-name">Controller Name (optional):</label>
-                <input type="text" id="controller-name" placeholder="Leave blank to auto-generate (brmesh_bridge, brmesh_bridge_1, etc.)" />
+                <input type="text" id="controller-name" placeholder="Leave blank to auto-generate (esp-ble-bridge, esp-ble-bridge-1, etc.)" />
                 <small>Auto-generated if not specified</small>
             </div>
             
@@ -795,7 +795,7 @@ async function addExistingController() {
             <div id="manual-controller-inputs" style="${deviceOptions ? 'display:none;' : ''}">
                 <div class="form-group">
                     <label for="controller-name">Controller Name:</label>
-                    <input type="text" id="controller-name" placeholder="e.g., brmesh-bridge" />
+                    <input type="text" id="controller-name" placeholder="e.g., esp-ble-bridge" />
                 </div>
                 
                 <div class="form-group">

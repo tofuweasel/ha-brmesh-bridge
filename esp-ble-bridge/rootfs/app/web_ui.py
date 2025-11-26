@@ -328,7 +328,7 @@ class WebUI:
                 # Auto-generate name if not provided
                 if not controller_data.get('name'):
                     existing_controllers = self.bridge.config.get('controllers', [])
-                    base_name = 'brmesh-bridge'
+                    base_name = 'esp-ble-bridge'
                     
                     # Check if base name exists
                     existing_names = [c.get('name', '').lower() for c in existing_controllers]
