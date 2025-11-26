@@ -69,7 +69,7 @@ function generateMeshKey() {
     }
     document.getElementById('mesh-key').value = meshKey;
     showNotification('✅ Generated new mesh key: ' + meshKey, 'success');
-});
+}
 
 // Tab Navigation
 function setupTabs() {
