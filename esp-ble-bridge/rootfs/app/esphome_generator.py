@@ -484,14 +484,11 @@ if (!mfg_datas.empty()) {
                     secrets['api_encryption_key'] = PlainScalarString(self._generate_random_key())
                     updated = True
                 else:
-                    logger.info(f"✅ API encryption key is valid (length: {len(api_key)})")
-                    logger.info(f"🔍 Key type: {type(api_key).__name__}")
-                    logger.info(f"🔍 Key repr: {repr(api_key)}")
-                    # ALWAYS regenerate to ensure proper formatting (quotes issue)
-                    # Once ESPHome accepts the key, we can switch back to preserving it
-                    logger.warning(f"⚠️  Regenerating key to ensure proper formatting (ESPHome quote issue)")
-                    secrets['api_encryption_key'] = PlainScalarString(self._generate_random_key())
-                    updated = True
+                    logger.info(f"✅ API encryption key is valid (length: {len(api_key)}) - preserving existing key")
+                    # Preserve existing valid key, just ensure it's a PlainScalarString
+                    if not isinstance(api_key, PlainScalarString):
+                        secrets['api_encryption_key'] = PlainScalarString(str(api_key))
+                        updated = True
                 
                 # Generate or replace invalid OTA password
                 ota_pass = secrets.get('ota_password', '')
