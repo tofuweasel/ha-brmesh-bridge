@@ -795,9 +795,9 @@ class WebUI:
                         options['mqtt_password'] = settings.get('mqtt_password')
                 
                 options['map_enabled'] = settings.get('map_enabled', True)
-                options['latitude'] = settings.get('latitude', 0)
-                options['longitude'] = settings.get('longitude', 0)
-                options['zoom'] = settings.get('zoom', 18)
+                options['map_latitude'] = settings.get('latitude', 0)
+                options['map_longitude'] = settings.get('longitude', 0)
+                options['map_zoom'] = settings.get('zoom', 18)
                 options['discovery_enabled'] = settings.get('discovery_enabled', True)
                 options['generate_esphome'] = settings.get('generate_esphome', True)
                 options['enable_ble'] = settings.get('enable_ble', True)

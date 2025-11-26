@@ -1019,6 +1019,148 @@ function initMap() {
     };
     
     L.control.layers(baseMaps).addTo(map);
+    
+    // Add address search control
+    addAddressSearch();
+}
+
+function addAddressSearch() {
+    const searchControl = L.Control.extend({
+        options: {
+            position: 'topright'
+        },
+        
+        onAdd: function(map) {
+            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control address-search-control');
+            container.style.background = 'white';
+            container.style.padding = '10px';
+            container.style.borderRadius = '4px';
+            container.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
+            
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 8px; min-width: 250px;">
+                    <input type="text" id="address-search-input" placeholder="🔍 Search address..." 
+                        style="padding: 6px; border: 1px solid #ccc; border-radius: 3px; width: 100%;" />
+                    <select id="country-filter" style="padding: 6px; border: 1px solid #ccc; border-radius: 3px;">
+                        <option value="">🌍 All Countries</option>
+                        <option value="us" selected>🇺🇸 United States</option>
+                        <option value="ca">🇨🇦 Canada</option>
+                        <option value="gb">🇬🇧 United Kingdom</option>
+                        <option value="au">🇦🇺 Australia</option>
+                        <option value="de">🇩🇪 Germany</option>
+                        <option value="fr">🇫🇷 France</option>
+                        <option value="es">🇪🇸 Spain</option>
+                        <option value="it">🇮🇹 Italy</option>
+                        <option value="jp">🇯🇵 Japan</option>
+                        <option value="cn">🇨🇳 China</option>
+                    </select>
+                    <div id="address-results" style="max-height: 200px; overflow-y: auto; display: none;"></div>
+                </div>
+            `;
+            
+            // Prevent map interactions when using the search control
+            L.DomEvent.disableClickPropagation(container);
+            L.DomEvent.disableScrollPropagation(container);
+            
+            return container;
+        }
+    });
+    
+    map.addControl(new searchControl());
+    
+    // Add search functionality
+    const searchInput = document.getElementById('address-search-input');
+    const countryFilter = document.getElementById('country-filter');
+    const resultsDiv = document.getElementById('address-results');
+    
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value.trim();
+        
+        if (query.length < 3) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => searchAddress(query), 500);
+    });
+}
+
+async function searchAddress(query) {
+    const resultsDiv = document.getElementById('address-results');
+    const countryFilter = document.getElementById('country-filter').value;
+    
+    try {
+        resultsDiv.innerHTML = '<div style="padding: 8px;">🔄 Searching...</div>';
+        resultsDiv.style.display = 'block';
+        
+        // Build URL with optional country filter
+        let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
+        if (countryFilter) {
+            url += `&countrycodes=${countryFilter}`;
+        }
+        
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'ESP-BLE-Bridge/1.0'
+            }
+        });
+        
+        const results = await response.json();
+        
+        if (results.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding: 8px; color: #666;">No results found</div>';
+            return;
+        }
+        
+        resultsDiv.innerHTML = results.map(result => `
+            <div class="address-result-item" onclick="selectAddress(${result.lat}, ${result.lon}, '${result.display_name.replace(/'/g, "\\'")}')" 
+                style="padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px;"
+                onmouseover="this.style.background='#f0f0f0'" 
+                onmouseout="this.style.background='white'">
+                📍 ${result.display_name}
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Address search failed:', error);
+        resultsDiv.innerHTML = '<div style="padding: 8px; color: red;">Search failed</div>';
+    }
+}
+
+function selectAddress(lat, lon, address) {
+    // Update map center
+    map.setView([lat, lon], 18);
+    
+    // Hide results
+    document.getElementById('address-results').style.display = 'none';
+    document.getElementById('address-search-input').value = '';
+    
+    // Add a temporary marker
+    const marker = L.marker([lat, lon], {
+        icon: L.divIcon({
+            className: 'search-marker',
+            html: '📍',
+            iconSize: [30, 30]
+        })
+    }).addTo(map);
+    
+    marker.bindPopup(`<b>Selected Location</b><br>${address}<br><br><button onclick="saveMapCenter(${lat}, ${lon})">💾 Set as Property Center</button>`).openPopup();
+    
+    // Remove marker after 10 seconds
+    setTimeout(() => map.removeLayer(marker), 10000);
+}
+
+async function saveMapCenter(lat, lon) {
+    config.map_latitude = lat;
+    config.map_longitude = lon;
+    
+    // Update the settings form
+    document.getElementById('map-latitude').value = lat;
+    document.getElementById('map-longitude').value = lon;
+    
+    showNotification('📍 Property center updated! Click "Save Settings" to persist.', 'info');
 }
 
 function updateMapMarkers() {
