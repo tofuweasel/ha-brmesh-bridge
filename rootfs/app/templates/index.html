@@ -10,10 +10,23 @@
 </head>
 <body>
     <div class="container">
+        <!-- Firmware Update Banner (hidden by default) -->
+        <div id="firmware-update-banner" class="firmware-update-banner" style="display: none;">
+            <div class="banner-content">
+                <span class="banner-icon">🎉</span>
+                <div class="banner-text">
+                    <strong>Firmware Update Available!</strong>
+                    <span id="firmware-version-info"></span>
+                </div>
+                <a id="firmware-download-link" href="#" target="_blank" class="btn btn-primary btn-sm">Download Latest</a>
+                <button id="dismiss-firmware-banner" class="btn btn-secondary btn-sm">Dismiss</button>
+            </div>
+        </div>
+
         <header>
             <div class="header-title">
                 <h1>🔆 ESP BLE Bridge</h1>
-                <span class="version">v0.30.19 (Bridge FW: 1.0.0)</span>
+                <span class="version">v0.50.0 (Firmware: <span id="firmware-version-display">checking...</span>)</span>
             </div>
             <div class="header-controls">
                 <button id="dark-mode-toggle" class="btn btn-secondary" title="Toggle Dark Mode">🌙</button>

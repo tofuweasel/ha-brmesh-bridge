@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupDarkMode();
     await loadConfig();
     
+    // Check for firmware updates
+    checkFirmwareVersion();
+    
     // Check if mesh key is configured, if not, default to settings tab
     if (!config.mesh_key || config.mesh_key.trim() === '') {
         // Switch to settings tab
@@ -132,6 +135,48 @@ async function loadConfig() {
         config = await response.json();
     } catch (error) {
         console.error('Failed to load config:', error);
+    }
+}
+
+async function checkFirmwareVersion() {
+    try {
+        const response = await fetch('api/firmware/check');
+        const data = await response.json();
+        
+        // Update version display in header
+        const versionDisplay = document.getElementById('firmware-version-display');
+        if (versionDisplay) {
+            versionDisplay.textContent = data.current_version;
+        }
+        
+        // Show update banner if update available
+        if (data.update_available && !localStorage.getItem('firmware-banner-dismissed')) {
+            const banner = document.getElementById('firmware-update-banner');
+            const versionInfo = document.getElementById('firmware-version-info');
+            const downloadLink = document.getElementById('firmware-download-link');
+            
+            if (banner && versionInfo && downloadLink) {
+                versionInfo.textContent = `v${data.current_version} → v${data.latest_version}`;
+                downloadLink.href = data.release_url;
+                banner.style.display = 'block';
+                
+                // Setup dismiss button
+                const dismissBtn = document.getElementById('dismiss-firmware-banner');
+                if (dismissBtn) {
+                    dismissBtn.addEventListener('click', () => {
+                        banner.style.display = 'none';
+                        localStorage.setItem('firmware-banner-dismissed', 'true');
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Failed to check firmware version:', error);
+        // Silently fail - not critical
+        const versionDisplay = document.getElementById('firmware-version-display');
+        if (versionDisplay) {
+            versionDisplay.textContent = '0.50.0';
+        }
     }
 }
 

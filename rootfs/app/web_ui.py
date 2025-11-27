@@ -106,6 +106,44 @@ class WebUI:
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/firmware/check')
+        def check_firmware_version():
+            """Check for firmware updates from GitHub"""
+            try:
+                # Current addon version (hardcoded for now, could read from config.yaml)
+                current_version = "0.50.0"
+                
+                # Query GitHub API for latest firmware release
+                api_url = "https://api.github.com/repos/tofuweasel/esp-ble-bridge-firmware/releases/latest"
+                response = requests.get(api_url, timeout=5)
+                
+                if response.status_code == 200:
+                    release_data = response.json()
+                    latest_version = release_data.get('tag_name', '').lstrip('v')
+                    release_url = release_data.get('html_url', '')
+                    release_notes = release_data.get('body', '')
+                    published_at = release_data.get('published_at', '')
+                    
+                    return jsonify({
+                        'current_version': current_version,
+                        'latest_version': latest_version,
+                        'update_available': latest_version != current_version,
+                        'release_url': release_url,
+                        'release_notes': release_notes,
+                        'published_at': published_at
+                    })
+                else:
+                    return jsonify({
+                        'current_version': current_version,
+                        'error': f'GitHub API returned {response.status_code}'
+                    }), 500
+            except Exception as e:
+                logger.error(f"Error checking firmware version: {e}")
+                return jsonify({
+                    'current_version': current_version,
+                    'error': str(e)
+                }), 500
+        
         @app.route('/api/lights')
         def get_lights():
             """Get all lights with status"""
