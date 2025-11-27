@@ -144,7 +144,7 @@ From existing implementation, commands use:
 
 ## Alternative Approaches
 
-### 1. Reverse Engineer App APK
+### 1. Analyze Protocol Implementation
 - Decompile BRMesh APK
 - Analyze encryption/protocol code
 - Extract scene/group data structures

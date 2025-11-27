@@ -232,7 +232,7 @@ This is a complete protocol documentation project. If you discover additional fe
 
 ## ⚠️ Disclaimer
 
-This is an independent reverse engineering project for educational and interoperability purposes. BRMesh is a trademark of its respective owner. This project is not affiliated with or endorsed by the manufacturer.
+This is an independent open-source project for interoperability purposes. BRMesh is a trademark of its respective owner. This project is not affiliated with or endorsed by the manufacturer.
 
 ## 📄 License
 

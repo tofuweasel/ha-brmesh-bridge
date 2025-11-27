@@ -170,19 +170,14 @@ sendTestCommand(type)       // Send on/off/brightness commands
 
 ## Technical Achievement
 
-This is the **FIRST** Home Assistant integration that can:
-- ✅ Pair BRMesh devices WITHOUT Android app
+**Key Features:**
+- ✅ Pair BRMesh devices without Android app
 - ✅ Generate pairing responses natively
 - ✅ Encrypt/decrypt control commands
-- ✅ Provide web UI for pairing workflow
+- ✅ Web UI for pairing workflow
 
-**Previous implementations:**
-- ALL required Android app for initial pairing
-- Limited to control only (no pairing)
-- Relied on app-extracted credentials
-
-**This implementation:**
-- Complete native protocol stack
+**Advantages:**
+- Complete native protocol implementation
 - Full pairing + control in one package
 - User-friendly web interface
 - Open-source and documented

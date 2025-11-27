@@ -436,6 +436,6 @@ This add-on wouldn't be possible without:
 **[@scross01](https://github.com/scross01)** - Creator and maintainer of [esphome-fastcon](https://github.com/scross01/esphome-fastcon), the ESPHome component that handles BRMesh/Fastcon BLE protocol communication. Your work made this entire project possible! 🙏
 
 Additional thanks to:
-- **[Mooody](https://mooody.me/)** - Original Fastcon BLE protocol reverse engineering
+- **[Mooody](https://mooody.me/)** - Original Fastcon BLE protocol documentation
 - **[ArcadeMachinist](https://github.com/ArcadeMachinist)** - brMeshMQTT reference implementation
 - **Home Assistant Community** - Testing, feedback, and support

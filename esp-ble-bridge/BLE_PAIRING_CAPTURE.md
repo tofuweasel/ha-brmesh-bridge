@@ -1,4 +1,4 @@
-# BRMesh BLE Pairing Protocol Reverse Engineering
+# BRMesh BLE Pairing Protocol Analysis
 
 ## Capture Plan
 
