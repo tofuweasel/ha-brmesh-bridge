@@ -408,8 +408,8 @@ class WebUI:
                         logger.error(f"Failed to update secrets: {e}")
                         return jsonify({'error': f'Failed to save WiFi credentials: {e}'}), 500
                 
-                # Add to config
-                self.bridge.config.setdefault('controllers', []).append(controller_data)
+                # Add to both controllers list and config
+                self.bridge.controllers.append(controller_data)
                 self.bridge.save_config()
                 
                 # Generate ESPHome config if requested
