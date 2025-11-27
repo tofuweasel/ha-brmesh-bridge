@@ -52,7 +52,7 @@ In the Settings tab:
 1. Go to **Lights tab** in Web UI
 2. Click **🔍 Scan for Lights** button
 3. Wait 30 seconds while scan runs
-4. **All 7 lights appear automatically!**
+4. **All lights appear automatically!**
 5. Each gets assigned light IDs 11-17
 
 **No phone needed! No ADB logcat! Just click and wait!**

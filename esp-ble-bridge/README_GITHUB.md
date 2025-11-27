@@ -87,7 +87,7 @@ Set up lights without ever touching the Android app:
 3. Light discovered and configured
 4. Control via Home Assistant!
 
-Perfect for adding multiple lights without manual pairing!
+Perfect for adding 7+ lights without manual pairing!
 
 ## 🗺️ Map View
 

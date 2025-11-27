@@ -151,7 +151,7 @@ When found, it:
 # 2. Open Web UI
 # 3. Click "Scan for Lights"
 # 4. Wait 30 seconds
-# 5. Done! All 7 lights now registered
+# 5. Done! All lights now registered
 ```
 
 No phone required! 🎉
@@ -417,7 +417,7 @@ If a controller goes offline:
 
 6. **Click "🔍 Scan for Lights"**
    - Scans for 30 seconds
-   - Finds all 7 lights
+   - Finds all your lights
    - Registers them automatically
    - Shows: "Discovered 7 new devices"
 
@@ -439,7 +439,7 @@ If a controller goes offline:
     esphome run esp32_01.yaml
     ```
 
-11. **Done!** All 7 lights working in Home Assistant!
+11. **Done!** All lights working in Home Assistant!
 
 ### Time Required
 
@@ -535,7 +535,7 @@ automation:
 |---------|-----------|-----------|
 | **Add New Light** | Phone app + recompile ESP32 | Power on → Auto-discovered |
 | **Time to Add 1 Light** | ~5 minutes | ~30 seconds |
-| **Time to Add 7 Lights** | ~35 minutes | ~3 minutes |
+| **Time to Add Multiple Lights** | Hours | Minutes |
 | **Device Names** | Manual in YAML | Synced from app |
 | **ESP32 Config** | Manual YAML editing | Auto-generated |
 | **State Sync** | One-way (HA → Light) | Two-way (bidirectional) |
@@ -571,7 +571,7 @@ However, you can optionally use the app to:
 
 ### Q: Do I need multiple ESP32s?
 
-**A: Depends on coverage area.** Each ESP32 covers ~50 feet. For 7 lights:
+**A: Depends on coverage area.** Each ESP32 covers ~50 feet. For multiple lights:
 - Small yard (< 50 ft): 1 ESP32
 - Medium yard (50-100 ft): 2 ESP32s
 - Large property (> 100 ft): 3+ ESP32s
@@ -670,7 +670,7 @@ Your BRMesh Bridge is now a **complete lighting management system**:
 ✅ **NSPanel UI** - Touch control interface  
 ✅ **State monitoring** - Two-way sync  
 ✅ **Signal optimization** - Automatic controller placement  
-✅ **7+ lights ready** - Scalable architecture  
+✅ **Multiple lights ready** - Scalable architecture  
 
 **You can now:**
 1. Power on your 7 new lights

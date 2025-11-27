@@ -123,7 +123,7 @@ From existing implementation, commands use:
 1. Test scene activation
 2. Test group control
 3. Test native pairing workflow
-4. Validate all lights
+4. Validate all 15 lights
 
 ## Current Status
 

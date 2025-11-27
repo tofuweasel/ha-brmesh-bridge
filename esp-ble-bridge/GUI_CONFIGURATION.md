@@ -211,7 +211,7 @@ Click **💾 Export Configuration** to download complete settings as JSON:
 5. New lights appear automatically!
 6. Click light name to rename
 
-**No phone required!** This is the recommended method for adding multiple lights.
+**No phone required!** This is the recommended method for adding 7+ lights.
 
 ### Manual Addition
 

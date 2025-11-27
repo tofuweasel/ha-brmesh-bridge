@@ -98,7 +98,7 @@ HomeAssistant/addons/brmesh-bridge/
 | BLE Component | `esp32_ble_server` | `esp32_ble_tracker` with scanner |
 | Pairing Switch | No | Yes (template switch) |
 | Light Throttle | `throttle: 300ms` | None (built-in) |
-| Default Lights | 15 lights | 0 lights (if none configured) |
+| Default Lights | Placeholder lights | 0 lights (if none configured) |
 | Template Comments | No | Yes (when starting with 0 lights) |
 
 ## Testing Results

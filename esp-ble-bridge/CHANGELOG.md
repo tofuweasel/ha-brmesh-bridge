@@ -161,7 +161,7 @@ This is a complete rewrite of the BRMesh Bridge add-on with a focus on user expe
 
 #### Light Management
 - **BLE Device Discovery** - Automatically scan for and register new lights without phone
-- **Phone-Free Operation** - Add multiple lights without ever touching the Android app
+- **Phone-Free Operation** - Add 7+ lights without ever touching the Android app
 - **Dynamic Light Management** - Add, remove, and rename lights without recompiling ESP32 firmware
 - **BRMesh App Sync** - Import device names from Android app via ADB or JSON export
 

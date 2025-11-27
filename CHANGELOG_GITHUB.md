@@ -30,7 +30,7 @@ Add BRMesh devices directly from Home Assistant - no Android app required!
 ### Benefits
 
 This release eliminates the need for the Android app during setup:
-- Pair 7+ lights without manual phone pairing
+- Pair multiple lights without manual phone pairing
 - Perfect for outdoor/hard-to-reach installations
 - Consistent mesh configuration across all devices
 - Simplified deployment for multi-property setups

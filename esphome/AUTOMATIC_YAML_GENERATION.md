@@ -17,7 +17,7 @@ The BRMesh Bridge addon now automatically generates optimized ESPHome configurat
 ### Standard Mode
 - **Original Fork**: Uses `scross01/esphome-fastcon@dev`
 - **Manual Throttling**: Includes `throttle: 300ms` parameter on each light
-- **Pre-populated Lights**: Generates 15 lights by default if none configured
+- **Pre-populated Lights**: Generates placeholder lights by default if none configured
 - **BLE Server**: Uses `esp32_ble_server` component
 
 ## Configuration
