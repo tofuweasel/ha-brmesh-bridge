@@ -1658,8 +1658,36 @@ Option 3: Add to Home Assistant
                 
                 logger.info(f"Generated pairing response for {mac}: {pairing_response.hex()}")
                 
-                # TODO: Send pairing response via BLE
-                # For now, just return the response
+                # Send pairing command via ESP32 controller
+                controllers = self.bridge.config.get('controllers', [])
+                if controllers:
+                    controller = controllers[0]
+                    esp32_host = controller.get('host', controller.get('name', 'esp-ble-bridge') + '.local')
+                    
+                    try:
+                        # Call ESPHome API to trigger pairing action
+                        # Use the button entity that triggers fastcon.pair_device
+                        import requests
+                        import socket
+                        
+                        # Resolve hostname
+                        try:
+                            ip = socket.gethostbyname(esp32_host)
+                        except:
+                            ip = esp32_host
+                        
+                        # ESPHome exposes button press via HTTP API
+                        button_url = f'http://{ip}/button/pair_light_id_{address}'
+                        logger.info(f"Triggering pairing via {button_url}")
+                        
+                        resp = requests.post(button_url, timeout=5)
+                        if resp.ok:
+                            logger.info(f"✅ Pairing command sent to ESP32 for Light ID {address}")
+                        else:
+                            logger.warning(f"ESP32 returned status {resp.status_code}")
+                    except Exception as esp_error:
+                        logger.error(f"Failed to send pairing to ESP32: {esp_error}")
+                        # Continue anyway - pairing response generated
                 
                 # Add device to lights config
                 light_config = {
