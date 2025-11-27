@@ -2427,7 +2427,7 @@ async function scanForPairingDevices() {
     status.textContent = 'Scanning for unpaired BRMesh devices...';
     
     try {
-        const response = await fetch('/api/pairing/discover');
+        const response = await fetch('api/pairing/discover');
         const devices = await response.json();
         
         discoveredDevices = devices;
@@ -2484,7 +2484,7 @@ async function pairDevice(mac, deviceIndex) {
     status.textContent = `⏳ Pairing device ${mac}...`;
     
     try {
-        const response = await fetch('/api/pairing/pair', {
+        const response = await fetch('api/pairing/pair', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
