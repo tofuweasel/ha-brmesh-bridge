@@ -175,7 +175,7 @@ async function checkFirmwareVersion() {
         // Silently fail - not critical
         const versionDisplay = document.getElementById('firmware-version-display');
         if (versionDisplay) {
-            versionDisplay.textContent = '0.50.6';
+            versionDisplay.textContent = '0.50.7';
         }
     }
 }

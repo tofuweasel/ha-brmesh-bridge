@@ -111,7 +111,7 @@ class WebUI:
             """Check for firmware updates from GitHub"""
             try:
                 # Current addon version (hardcoded for now, could read from config.yaml)
-                current_version = "0.50.6"
+                current_version = "0.50.7"
                 
                 # Query GitHub API for latest firmware release
                 api_url = "https://api.github.com/repos/tofuweasel/esp-ble-bridge-firmware/releases/latest"

@@ -482,6 +482,7 @@ if (!mfg_datas.empty()) {
         else:
             logger.info(f"📖 File exists, validating existing keys...")
             # Check if OTA/API keys exist, add them if missing or invalid
+            # IMPORTANT: Only append missing keys, never overwrite entire file
             try:
                 # Just load the file directly with ruamel.yaml
                 # It will handle duplicate keys by keeping the last one
@@ -492,54 +493,62 @@ if (!mfg_datas.empty()) {
                 logger.info(f"🔑 Keys present: {list(secrets.keys())}")
                 
                 updated = False
-                # Generate or replace invalid API encryption key
+                keys_to_update = {}
+                
+                # Check API encryption key
                 api_key = secrets.get('api_encryption_key', '')
                 if not api_key or not self._is_valid_base64_key(api_key):
-                    logger.info(f"🔑 Regenerating invalid api_encryption_key (was: {api_key[:20] if api_key else 'missing'}...)")
-                    # Use PlainScalarString to ensure no quotes are added
-                    secrets['api_encryption_key'] = PlainScalarString(self._generate_random_key())
+                    logger.info(f"🔑 Generating missing api_encryption_key")
+                    keys_to_update['api_encryption_key'] = PlainScalarString(self._generate_random_key())
                     updated = True
                 else:
                     logger.info(f"✅ API encryption key is valid (length: {len(api_key)}) - preserving existing key")
-                    # Preserve existing valid key, just ensure it's a PlainScalarString
-                    if not isinstance(api_key, PlainScalarString):
-                        secrets['api_encryption_key'] = PlainScalarString(str(api_key))
-                        updated = True
                 
-                # Generate or replace invalid OTA password
+                # Check OTA password
                 ota_pass = secrets.get('ota_password', '')
                 if not ota_pass or ota_pass == 'your_ota_password' or len(ota_pass) < 8:
-                    logger.info(f"🔑 Regenerating invalid ota_password")
-                    secrets['ota_password'] = PlainScalarString(self._generate_random_password())
+                    logger.info(f"🔑 Generating missing ota_password")
+                    keys_to_update['ota_password'] = PlainScalarString(self._generate_random_password())
                     updated = True
                 else:
                     logger.info(f"✅ OTA password is valid")
-                    # Ensure existing valid password is also plain scalar
-                    if not isinstance(ota_pass, PlainScalarString):
-                        secrets['ota_password'] = PlainScalarString(str(ota_pass))
-                        updated = True
                 
-                # Ensure mesh_key is present (from bridge config)
+                # Check mesh_key
                 if 'mesh_key' not in secrets and self.bridge.config.get('mesh_key'):
                     logger.info(f"🔑 Adding mesh_key to secrets")
-                    secrets['mesh_key'] = PlainScalarString(self.bridge.config.get('mesh_key'))
+                    keys_to_update['mesh_key'] = PlainScalarString(self.bridge.config.get('mesh_key'))
                     updated = True
                 
                 if updated:
-                    yaml_handler = self._get_yaml_handler()
-                    with open(ha_secrets_path, 'w') as f:
-                        yaml_handler.dump(secrets, f)
-                    logger.info(f"✅ Updated /config/secrets.yaml with missing keys")
+                    # APPEND new keys to existing file instead of overwriting
+                    logger.info(f"📝 Appending {len(keys_to_update)} missing keys to secrets file")
+                    with open(ha_secrets_path, 'a') as f:
+                        f.write('\n# Keys added by ESP BLE Bridge addon\n')
+                        for key, value in keys_to_update.items():
+                            f.write(f'{key}: {value}\n')
+                    logger.info(f"✅ Appended missing keys to /config/secrets.yaml (existing keys preserved)")
                     
-                    # Also copy to ESPHome directory so ESPHome can find it
+                    # Also append to ESPHome directory
                     esphome_secrets_path = '/config/esphome/secrets.yaml'
                     try:
                         os.makedirs(os.path.dirname(esphome_secrets_path), exist_ok=True)
-                        with open(esphome_secrets_path, 'w') as f:
-                            yaml_handler.dump(secrets, f)
-                        logger.info(f"✅ Copied secrets to /config/esphome/secrets.yaml for ESPHome")
+                        # Check if esphome secrets file exists
+                        if os.path.exists(esphome_secrets_path):
+                            # Append to existing file
+                            with open(esphome_secrets_path, 'a') as f:
+                                f.write('\n# Keys added by ESP BLE Bridge addon\n')
+                                for key, value in keys_to_update.items():
+                                    f.write(f'{key}: {value}\n')
+                            logger.info(f"✅ Appended keys to /config/esphome/secrets.yaml")
+                        else:
+                            # Create new file with all secrets
+                            secrets.update(keys_to_update)
+                            yaml_handler = self._get_yaml_handler()
+                            with open(esphome_secrets_path, 'w') as f:
+                                yaml_handler.dump(secrets, f)
+                            logger.info(f"✅ Created /config/esphome/secrets.yaml")
                     except Exception as copy_error:
-                        logger.error(f"Failed to copy secrets to esphome directory: {copy_error}")
+                        logger.error(f"Failed to update esphome secrets: {copy_error}")
             except Exception as e:
                 logger.error(f"Failed to update secrets: {e}")
     
