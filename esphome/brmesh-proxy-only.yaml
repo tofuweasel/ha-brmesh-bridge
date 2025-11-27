@@ -1,0 +1,85 @@
+# BRMesh Bluetooth Proxy - Simple Range Extender
+# 
+# This is a lightweight ESP32 that ONLY extends BLE range.
+# It does NOT handle any BRMesh protocol - just proxies raw BLE.
+# The main ESP BLE Bridge addon handles all the protocol logic.
+#
+# Use this for:
+# - Extending BLE range to distant lights
+# - Adding redundancy to your mesh network
+# - Simple setup without custom components
+#
+# Multiple proxies can coexist - they don't interfere with each other.
+
+esphome:
+  name: brmesh-proxy
+  friendly_name: "BRMesh Proxy"
+  comment: "Bluetooth proxy for BRMesh range extension"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+# Native API for Home Assistant
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  
+  fast_connect: true
+  
+  ap:
+    ssid: "BRMesh-Proxy-Fallback"
+    password: "brmesh123"
+
+captive_portal:
+
+# ========================================
+# Bluetooth Proxy - This is all you need!
+# ========================================
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 320ms
+    window: 300ms
+    active: true
+    continuous: true
+
+# Enable Bluetooth proxy to Home Assistant
+bluetooth_proxy:
+  active: true
+
+# ========================================
+# Optional: Status Sensors
+# ========================================
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+    mac_address:
+      name: "MAC Address"
+
+sensor:
+  - platform: uptime
+    name: "Uptime"
+  
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+
+button:
+  - platform: restart
+    name: "Restart"
+    icon: "mdi:restart"

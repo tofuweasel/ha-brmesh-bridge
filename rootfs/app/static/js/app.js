@@ -2273,6 +2273,12 @@ async function initLogViewer() {
         option.textContent = c.name;
         controllerSelect.appendChild(option);
     });
+    
+    // Auto-select first controller if available and nothing is selected
+    if (controllers.length > 0 && !currentLogController) {
+        controllerSelect.value = controllers[0].name;
+        switchLogController();
+    }
 }
 
 function switchLogController() {

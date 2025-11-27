@@ -1475,19 +1475,40 @@ class WebUI:
         def discover_unpaired_devices():
             """Discover BRMesh devices in pairing mode"""
             try:
-                # TODO: Implement BLE scanning for unpaired devices
-                # For now, return mock data
+                if not self.bridge.ble_discovery:
+                    logger.warning("BLE discovery not initialized")
+                    return jsonify({'error': 'BLE discovery not enabled'}), 400
+                
+                logger.info("Starting BLE scan for unpaired devices (15 second scan)...")
+                
+                # Run async BLE scan with longer duration for pairing
+                import asyncio
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    devices = loop.run_until_complete(
+                        self.bridge.ble_discovery.scan_for_devices(duration=15)
+                    )
+                    loop.close()
+                except Exception as scan_error:
+                    logger.error(f"BLE scan failed: {scan_error}", exc_info=True)
+                    return jsonify({'error': f'BLE scan failed: {str(scan_error)}'}), 500
+                
+                # Format for frontend
                 unpaired_devices = [
                     {
-                        'mac': 'AA:BB:CC:DD:EE:FF',
-                        'rssi': -65,
-                        'name': 'BRMesh Light',
-                        'manufacturer': 'Broadlink'
+                        'mac': d['mac_address'],
+                        'rssi': d['rssi'],
+                        'name': d['name'],
+                        'manufacturer': 'BRMesh'
                     }
+                    for d in devices
                 ]
+                
+                logger.info(f"Found {len(unpaired_devices)} unpaired devices: {[d['mac'] for d in unpaired_devices]}")
                 return jsonify(unpaired_devices)
             except Exception as e:
-                logger.error(f"Error discovering unpaired devices: {e}")
+                logger.error(f"Error discovering unpaired devices: {e}", exc_info=True)
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/pairing/pair', methods=['POST'])
@@ -1593,16 +1614,20 @@ class WebUI:
                 # Convert payload hex to bytes
                 payload = bytes.fromhex(payload_hex) if payload_hex else bytes()
                 
+                # Check if mesh forwarding should be enabled (default: True)
+                mesh_forward = data.get('mesh_forward', True)
+                
                 # Generate control command
                 command = create_control_command(
                     address=address,
                     cmd_type=cmd_type,
                     payload=payload,
                     mesh_key=mesh_key_bytes,
-                    seq=seq
+                    seq=seq,
+                    forward=1 if mesh_forward else 0
                 )
                 
-                logger.info(f"Generated control command for address {address}: {command.hex()}")
+                logger.info(f"Generated control command for address {address} (forward={1 if mesh_forward else 0}): {command.hex()}")
                 
                 # TODO: Send command via BLE
                 

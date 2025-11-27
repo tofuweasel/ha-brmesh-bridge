@@ -185,6 +185,21 @@ switch:
       - logger.log:
           level: INFO
           format: "Music reactive mode disabled"
+  
+  - platform: template
+    name: "Mesh Forwarding"
+    id: mesh_forward
+    icon: "mdi:lan"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON  # Enable by default
+    turn_on_action:
+      - logger.log:
+          level: INFO
+          format: "Mesh forwarding enabled - commands will relay through mesh"
+    turn_off_action:
+      - logger.log:
+          level: WARN
+          format: "Mesh forwarding disabled - only direct BLE range will work"
 
   # Uncomment for advanced music mode with music_effect component:
   # - platform: template
