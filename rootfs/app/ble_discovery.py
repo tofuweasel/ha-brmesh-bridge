@@ -47,6 +47,10 @@ class BRMeshDiscovery:
         
         def detection_callback(device, advertisement_data):
             """Called for each discovered device"""
+            # Log all devices at debug level
+            mfr_ids = list(advertisement_data.manufacturer_data.keys()) if advertisement_data.manufacturer_data else []
+            logger.debug(f"Scanned device: {device.address} ({device.name}) RSSI={advertisement_data.rssi} MFR_IDs={[hex(m) for m in mfr_ids]}")
+            
             # Check if this looks like a BRMesh device
             if self._is_brmesh_device(device, advertisement_data):
                 device_info = self._extract_device_info(device, advertisement_data)
@@ -72,22 +76,23 @@ class BRMeshDiscovery:
         """Check if device is a BRMesh light"""
         # Method 1: Check manufacturer data
         if advertisement_data.manufacturer_data:
-            # BRMesh devices typically have specific manufacturer IDs
-            # This needs to be determined by analyzing actual devices
+            # BRMesh devices use manufacturer ID 0xf0ff (61695 decimal)
             for mfr_id, data in advertisement_data.manufacturer_data.items():
-                # Common BLE manufacturer IDs for Chinese smart devices
-                if mfr_id in [0x0000, 0xFFFF]:  # Generic/Unknown
+                if mfr_id in [0xf0ff, 61695, 0x0000, 0xFFFF]:  # BRMesh + Generic fallbacks
+                    logger.debug(f"BRMesh device detected via manufacturer ID 0x{mfr_id:04x}: {device.address} (RSSI: {advertisement_data.rssi})")
                     return True
         
         # Method 2: Check service UUIDs
         if advertisement_data.service_uuids:
             for uuid in advertisement_data.service_uuids:
                 if any(ident in uuid.lower() for ident in self.brmesh_identifiers):
+                    logger.debug(f"BRMesh device detected via service UUID: {device.address}")
                     return True
         
         # Method 3: Check device name patterns
         name = device.name or ""
         if any(pattern in name.lower() for pattern in ['brmesh', 'fastcon', 'melpo', 'mesh_']):
+            logger.debug(f"BRMesh device detected via name '{name}': {device.address}")
             return True
         
         return False
