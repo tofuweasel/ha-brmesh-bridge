@@ -576,21 +576,52 @@ function renderControllers() {
                 </div>
             </div>
             <div class="controller-info">
-                <div>IP: ${controller.ip || 'Not configured'}</div>
+                <div id="ip-${controller.id}">IP: <span id="ip-value-${controller.id}">${controller.ip || 'Detecting...'}</span></div>
                 <div>MAC: ${controller.mac || 'N/A'}</div>
                 ${controller.esphome_path ? `<div>📄 ${controller.esphome_path}</div>` : ''}
             </div>
             <div class="controller-actions">
-                <button class="btn btn-secondary btn-sm" onclick="editController(${controller.id})" title="Edit controller details">✏️ Edit</button>
-                <button class="btn btn-secondary btn-sm" onclick="regenerateYAML('${controllerName}')" title="Regenerate ESPHome YAML">🔄 Regenerate YAML</button>
-                <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
-                <button class="btn btn-success" onclick="window.open('/5c53de3b_esphome/ingress', '_blank')">🔧 Open ESPHome</button>
-                <button class="btn btn-danger btn-sm" onclick="resetController('${controllerName}')" title="Reset this controller">🗑️ Reset</button>
+                <button class="btn btn-primary btn-sm" id="visit-${controller.id}" onclick="visitController('${controllerName}')" title="Visit device web interface" style="display:none;">🌐 Visit</button>
+                <button class="btn btn-secondary btn-sm" onclick="window.open('/5c53de3b_esphome/ingress', '_blank')" title="Edit in ESPHome dashboard">✏️ Edit</button>
+                <button class="btn btn-secondary btn-sm" onclick="viewLogs('${controllerName}')" title="View live logs">📋 Logs</button>
+                <button class="btn btn-secondary btn-sm" onclick="regenerateYAML('${controllerName}')" title="Regenerate ESPHome YAML">🔄 Regenerate</button>
+                <button class="btn btn-danger btn-sm" onclick="resetController('${controllerName}')" title="Reset this controller">🗑️ Delete</button>
             </div>
         `;
         
         grid.appendChild(card);
+        
+        // Check ESPHome status for this controller
+        checkESPHomeStatus(controller.id, controllerName);
     });
+}
+
+async function checkESPHomeStatus(controllerId, controllerName) {
+    try {
+        const response = await fetch(`api/esphome/status/${controllerName}`);
+        const data = await response.json();
+        
+        // Update IP display
+        const ipValue = document.getElementById(`ip-value-${controllerId}`);
+        if (ipValue && data.ip) {
+            ipValue.textContent = data.ip;
+        }
+        
+        // Update online badge
+        const onlineBadge = document.getElementById(`online-${controllerId}`);
+        if (onlineBadge) {
+            onlineBadge.innerHTML = data.online ? '🟢 ONLINE' : '🔴 Offline';
+        }
+        
+        // Show/hide visit button based on online status
+        const visitBtn = document.getElementById(`visit-${controllerId}`);
+        if (visitBtn && data.online && data.ip) {
+            visitBtn.style.display = 'inline-block';
+            visitBtn.onclick = () => window.open(`http://${data.ip}`, '_blank');
+        }
+    } catch (error) {
+        console.error('Failed to check ESPHome status:', error);
+    }
 }
 
 async function checkControllerOnline(controllerId, ip) {
@@ -2090,6 +2121,16 @@ async function unpairLight(lightId, lightName) {
         console.error('Unpair error:', error);
         showNotification(`❌ Failed to remove light: ${error.message}`, 'error');
     }
+}
+
+function visitController(controllerName) {
+    // Open controller web interface - IP is stored in the visit button's onclick
+    // This is just a placeholder, actual URL is set in checkESPHomeStatus
+}
+
+function viewLogs(controllerName) {
+    // Open ESPHome logs page for this controller
+    window.open(`/5c53de3b_esphome/ingress/${controllerName}/logs`, '_blank');
 }
 
 async function regenerateYAML(controllerName) {

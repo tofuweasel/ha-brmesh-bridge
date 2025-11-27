@@ -556,6 +556,38 @@ class WebUI:
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/esphome/status/<controller_name>')
+        def get_esphome_status(controller_name):
+            """Get ESPHome device status from Home Assistant"""
+            try:
+                import socket
+                
+                # Try to resolve mDNS hostname
+                hostname = f"{controller_name}.local"
+                ip = None
+                online = False
+                
+                try:
+                    ip = socket.gethostbyname(hostname)
+                    # Try to connect to ESPHome web server
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(2)
+                    result = sock.connect_ex((ip, 80))
+                    sock.close()
+                    online = (result == 0)
+                except:
+                    pass
+                
+                return jsonify({
+                    'name': controller_name,
+                    'hostname': hostname,
+                    'ip': ip,
+                    'online': online
+                })
+            except Exception as e:
+                logger.error(f"Failed to get ESPHome status: {e}")
+                return jsonify({'error': str(e)}), 500
+        
         @app.route('/api/esphome/download/<controller_name>')
         def download_esphome_config(controller_name):
             """Download ESPHome YAML for a specific controller"""
