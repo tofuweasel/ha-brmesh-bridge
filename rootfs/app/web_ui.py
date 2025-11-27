@@ -1472,43 +1472,123 @@ class WebUI:
         
         @app.route('/api/pairing/discover', methods=['GET'])
         def discover_unpaired_devices():
-            """Discover BRMesh devices in pairing mode"""
-            try:
-                if not self.bridge.ble_discovery:
-                    logger.warning("BLE discovery not initialized")
-                    return jsonify({'error': 'BLE discovery not enabled'}), 400
+            """Discover BRMesh devices in pairing mode with progress updates"""
+            
+            def generate_progress():
+                """Generator for SSE progress updates"""
+                import json
                 
-                logger.info("Starting BLE scan for unpaired devices (15 second scan)...")
+                def send_event(event_type, data):
+                    """Send SSE event"""
+                    return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
                 
-                # Run async BLE scan with longer duration for pairing
-                import asyncio
                 try:
+                    if not self.bridge.ble_discovery:
+                        yield send_event('error', {'message': 'BLE discovery not enabled'})
+                        return
+                    
+                    yield send_event('status', {'message': 'Initializing BLE scan...', 'progress': 0})
+                    
+                    controllers = self.bridge.config.get('controllers', [])
+                    if not controllers:
+                        yield send_event('error', {'message': 'No ESP32 controllers configured'})
+                        return
+                    
+                    controller = controllers[0]
+                    controller_name = controller.get('name', 'unknown')
+                    yield send_event('status', {'message': f'Using controller: {controller_name}', 'progress': 10})
+                    
+                    # Run async BLE scan with progress updates
+                    import asyncio
+                    try:
+                        yield send_event('status', {'message': 'Starting 15-second BLE scan on ESP32...', 'progress': 20})
+                        
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        
+                        # Create a task to track progress
+                        scan_duration = 15
+                        import time
+                        start_time = time.time()
+                        
+                        # Start scan in background
+                        scan_task = loop.create_task(self.bridge.ble_discovery.scan_for_devices(duration=scan_duration))
+                        
+                        # Send progress updates while scanning
+                        while not scan_task.done():
+                            elapsed = time.time() - start_time
+                            progress = min(90, 20 + int((elapsed / scan_duration) * 70))
+                            yield send_event('status', {
+                                'message': f'Scanning... ({int(elapsed)}/{scan_duration}s)',
+                                'progress': progress
+                            })
+                            await asyncio.sleep(1)
+                        
+                        devices = scan_task.result()
+                        loop.close()
+                        
+                        yield send_event('status', {'message': f'Scan complete. Processing {len(devices)} devices...', 'progress': 95})
+                        
+                    except Exception as scan_error:
+                        logger.error(f"BLE scan failed: {scan_error}", exc_info=True)
+                        yield send_event('error', {'message': f'BLE scan failed: {str(scan_error)}'})
+                        return
+                    
+                    # Format for frontend
+                    unpaired_devices = [
+                        {
+                            'mac': d['mac_address'],
+                            'rssi': d['rssi'],
+                            'name': d['name'],
+                            'manufacturer': 'BRMesh'
+                        }
+                        for d in devices
+                    ]
+                    
+                    logger.info(f"Found {len(unpaired_devices)} unpaired devices: {[d['mac'] for d in unpaired_devices]}")
+                    
+                    # Send final result
+                    yield send_event('complete', {
+                        'devices': unpaired_devices,
+                        'count': len(unpaired_devices),
+                        'progress': 100
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Error discovering unpaired devices: {e}", exc_info=True)
+                    yield send_event('error', {'message': str(e)})
+            
+            # Check if client wants SSE or regular JSON
+            if request.headers.get('Accept') == 'text/event-stream':
+                return Response(generate_progress(), mimetype='text/event-stream')
+            else:
+                # Fallback: regular JSON response (blocking)
+                try:
+                    if not self.bridge.ble_discovery:
+                        return jsonify({'error': 'BLE discovery not enabled'}), 400
+                    
+                    import asyncio
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     devices = loop.run_until_complete(
                         self.bridge.ble_discovery.scan_for_devices(duration=15)
                     )
                     loop.close()
-                except Exception as scan_error:
-                    logger.error(f"BLE scan failed: {scan_error}", exc_info=True)
-                    return jsonify({'error': f'BLE scan failed: {str(scan_error)}'}), 500
-                
-                # Format for frontend
-                unpaired_devices = [
-                    {
-                        'mac': d['mac_address'],
-                        'rssi': d['rssi'],
-                        'name': d['name'],
-                        'manufacturer': 'BRMesh'
-                    }
-                    for d in devices
-                ]
-                
-                logger.info(f"Found {len(unpaired_devices)} unpaired devices: {[d['mac'] for d in unpaired_devices]}")
-                return jsonify(unpaired_devices)
-            except Exception as e:
-                logger.error(f"Error discovering unpaired devices: {e}", exc_info=True)
-                return jsonify({'error': str(e)}), 500
+                    
+                    unpaired_devices = [
+                        {
+                            'mac': d['mac_address'],
+                            'rssi': d['rssi'],
+                            'name': d['name'],
+                            'manufacturer': 'BRMesh'
+                        }
+                        for d in devices
+                    ]
+                    
+                    return jsonify(unpaired_devices)
+                except Exception as e:
+                    logger.error(f"Error: {e}", exc_info=True)
+                    return jsonify({'error': str(e)}), 500
         
         @app.route('/api/pairing/pair', methods=['POST'])
         def pair_device():

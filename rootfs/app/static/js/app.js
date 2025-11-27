@@ -2451,26 +2451,41 @@ async function scanForPairingDevices() {
     btn.textContent = '📡 Scanning...';
     status.style.display = 'block';
     status.className = 'status-message info';
-    status.textContent = 'Scanning for unpaired BRMesh devices...';
+    status.textContent = 'Initializing BLE scan...';
     
-    try {
-        const response = await fetch('api/pairing/discover');
-        const devices = await response.json();
+    // Use EventSource for Server-Sent Events (SSE) progress updates
+    const eventSource = new EventSource('api/pairing/discover', {
+        headers: { 'Accept': 'text/event-stream' }
+    });
+    
+    let scanCompleted = false;
+    
+    eventSource.addEventListener('status', (event) => {
+        const data = JSON.parse(event.data);
+        status.className = 'status-message info';
+        status.textContent = `📡 ${data.message}`;
+        console.log(`Progress: ${data.progress}%`, data.message);
+    });
+    
+    eventSource.addEventListener('complete', (event) => {
+        const data = JSON.parse(event.data);
+        scanCompleted = true;
+        eventSource.close();
         
-        discoveredDevices = devices;
+        discoveredDevices = data.devices;
         
-        if (devices.length === 0) {
+        if (data.devices.length === 0) {
             status.className = 'status-message warning';
             status.textContent = '⚠️ No unpaired devices found. Make sure your light is in pairing mode (flashing rapidly).';
             discoveredDiv.style.display = 'none';
         } else {
             status.className = 'status-message success';
-            status.textContent = `✅ Found ${devices.length} unpaired device(s)`;
+            status.textContent = `✅ Found ${data.count} unpaired device(s)`;
             discoveredDiv.style.display = 'block';
             
             // Render devices list
             let html = '';
-            devices.forEach((device, index) => {
+            data.devices.forEach((device, index) => {
                 html += `
                     <div class="device-card">
                         <div class="device-info">
@@ -2490,14 +2505,42 @@ async function scanForPairingDevices() {
             devicesList.innerHTML = html;
         }
         
-    } catch (error) {
-        status.className = 'status-message error';
-        status.textContent = '❌ Error scanning for devices: ' + error.message;
-        discoveredDiv.style.display = 'none';
-    } finally {
         btn.disabled = false;
         btn.textContent = '📡 Scan for Devices';
-    }
+    });
+    
+    eventSource.addEventListener('error', (event) => {
+        scanCompleted = true;
+        eventSource.close();
+        
+        let errorMsg = 'Unknown error';
+        try {
+            if (event.data) {
+                const data = JSON.parse(event.data);
+                errorMsg = data.message || errorMsg;
+            }
+        } catch (e) {
+            errorMsg = 'Connection error';
+        }
+        
+        status.className = 'status-message error';
+        status.textContent = '❌ Error: ' + errorMsg;
+        discoveredDiv.style.display = 'none';
+        
+        btn.disabled = false;
+        btn.textContent = '📡 Scan for Devices';
+    });
+    
+    // Fallback timeout (20 seconds)
+    setTimeout(() => {
+        if (!scanCompleted) {
+            eventSource.close();
+            status.className = 'status-message error';
+            status.textContent = '❌ Scan timed out';
+            btn.disabled = false;
+            btn.textContent = '📡 Scan for Devices';
+        }
+    }, 20000);
 }
 
 async function pairDevice(mac, deviceIndex) {
