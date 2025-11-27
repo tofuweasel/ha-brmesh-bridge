@@ -260,7 +260,7 @@ async function toggleLight(lightId) {
     if (!light) return;
     
     try {
-        await fetch(`/api/lights/${lightId}`, {
+        await fetch(`api/lights/${lightId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -301,7 +301,7 @@ async function applyColor() {
     const rgb = hexToRgb(colorHex);
     
     try {
-        await fetch(`/api/lights/${currentLightForColor}`, {
+        await fetch(`api/lights/${currentLightForColor}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -365,7 +365,7 @@ async function startEffect(effectName) {
     }
     
     try {
-        await fetch(`/api/effects/${effectName}`, {
+        await fetch(`api/effects/${effectName}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -424,7 +424,7 @@ function renderScenes(scenes) {
 
 async function applyScene(sceneName) {
     try {
-        await fetch(`/api/scenes/${sceneName}`, {
+        await fetch(`api/scenes/${sceneName}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -666,7 +666,7 @@ async function checkFirmwareBuild(controllerId, controllerName) {
     
     try {
         // Check if .bin file exists in ESPHome build directory
-        const response = await fetch(`/api/esphome/build-status/${controllerName}`);
+        const response = await fetch(`api/esphome/build-status/${controllerName}`);
         const data = await response.json();
         
         if (data.built) {
@@ -1363,7 +1363,7 @@ function updateMapMarkers() {
 
 async function updateLightLocation(lightId, x, y) {
     try {
-        await fetch(`/api/lights/${lightId}/location`, {
+        await fetch(`api/lights/${lightId}/location`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ x, y })
@@ -2170,7 +2170,7 @@ function viewLogs(controllerName) {
 async function regenerateYAML(controllerName) {
     try {
         showNotification(`Regenerating YAML for ${controllerName}...`, 'info');
-        const response = await fetch(`/api/settings`, {
+        const response = await fetch(`api/settings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({}) // Triggers YAML regeneration
@@ -2331,7 +2331,7 @@ async function fetchLogs() {
     
     try {
         // Fetch from ESPHome logs API (we'll need to add this endpoint)
-        const response = await fetch(`/api/esphome/logs/${currentLogController}`);
+        const response = await fetch(`api/esphome/logs/${currentLogController}`);
         if (!response.ok) return;
         
         const data = await response.json();

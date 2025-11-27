@@ -1,0 +1,16 @@
+⚠️ ADDON RESTART REQUIRED ⚠️
+
+After pulling v0.30.8, you need to:
+
+1. Go to Home Assistant → Settings → Add-ons → ESP BLE Bridge
+2. Click "RESTART" button
+3. Wait for addon to come back online
+4. Hard refresh browser (Ctrl+Shift+R) to clear JavaScript cache
+5. Check that version shows "v0.30.8" in top right of UI
+
+The new /api/pairing/discover route won't exist until the addon restarts with the new code!
+
+Alternatively, run:
+ha addons restart esp-ble-bridge
+
+Then hard refresh your browser.
