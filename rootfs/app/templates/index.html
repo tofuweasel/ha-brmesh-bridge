@@ -227,6 +227,25 @@
         <div id="controllers-tab" class="tab-content">
             <div class="controllers-panel">
                 <h2>ESP32 Controllers</h2>
+                
+                <!-- Firmware Info Card -->
+                <div id="firmware-info-card" class="controller-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="font-size: 1.1em;">📦 Firmware Management</strong>
+                            <div style="margin-top: 10px; font-size: 0.95em;">
+                                <div>Current Version: <strong id="current-fw-version">1.1</strong></div>
+                                <div id="latest-fw-version-display" style="margin-top: 5px;">Latest Version: <span id="latest-fw-version">checking...</span></div>
+                                <div id="fw-update-message" style="margin-top: 5px; display: none;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn btn-primary" onclick="checkFirmwareUpdate()" style="white-space: nowrap;">🔍 Check for Updates</button>
+                            <a id="fw-download-link" href="https://github.com/tofuweasel/esp-ble-bridge-firmware" target="_blank" class="btn btn-success" style="text-decoration: none; text-align: center; display: none;">📥 Download Latest</a>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="controllers-grid" id="controllers-grid">
                     <!-- Populated by JavaScript -->
                 </div>

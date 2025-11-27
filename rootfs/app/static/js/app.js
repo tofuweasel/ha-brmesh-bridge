@@ -180,6 +180,43 @@ async function checkFirmwareVersion() {
     }
 }
 
+async function checkFirmwareUpdate() {
+    const currentVersion = document.getElementById('current-fw-version');
+    const latestVersion = document.getElementById('latest-fw-version');
+    const updateMessage = document.getElementById('fw-update-message');
+    const downloadLink = document.getElementById('fw-download-link');
+    
+    try {
+        latestVersion.textContent = 'checking...';
+        updateMessage.style.display = 'none';
+        downloadLink.style.display = 'none';
+        
+        const response = await fetch('api/firmware/check');
+        const data = await response.json();
+        
+        currentVersion.textContent = data.current_version || '1.1';
+        latestVersion.textContent = data.latest_version || 'Unknown';
+        
+        if (data.update_available) {
+            updateMessage.innerHTML = `<strong style="color: #FFD700;">🎉 New version available!</strong> <a href="${data.release_url}" target="_blank" style="color: white; text-decoration: underline;">View Release Notes</a>`;
+            updateMessage.style.display = 'block';
+            downloadLink.href = 'https://github.com/tofuweasel/esp-ble-bridge-firmware/releases/latest';
+            downloadLink.style.display = 'block';
+            showNotification('🎉 Firmware update available! Download from the Controllers tab.', 'success');
+        } else {
+            updateMessage.innerHTML = '<strong style="color: #90EE90;">✅ You\'re running the latest firmware version!</strong>';
+            updateMessage.style.display = 'block';
+            showNotification('✅ Firmware is up to date!', 'success');
+        }
+    } catch (error) {
+        console.error('Failed to check firmware version:', error);
+        latestVersion.textContent = 'Error';
+        updateMessage.innerHTML = '<strong style="color: #FFB6C1;">❌ Could not check for updates</strong>';
+        updateMessage.style.display = 'block';
+        showNotification('❌ Failed to check for firmware updates', 'error');
+    }
+}
+
 async function loadLights() {
     try {
         const response = await fetch('api/lights');
@@ -209,6 +246,9 @@ async function loadControllers() {
         renderControllers();
         updateMapMarkers();
         initLogViewer(); // Update log controller dropdown
+        
+        // Auto-check firmware version when controllers tab loads
+        checkFirmwareUpdate();
     } catch (error) {
         console.error('Failed to load controllers:', error);
     }
