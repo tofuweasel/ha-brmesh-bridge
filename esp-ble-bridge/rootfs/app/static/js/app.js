@@ -581,6 +581,7 @@ function renderControllers() {
                 ${controller.esphome_path ? `<div>📄 ${controller.esphome_path}</div>` : ''}
             </div>
             <div class="controller-actions">
+                <button class="btn btn-secondary btn-sm" onclick="editController(${controller.id})" title="Edit controller details">✏️ Edit</button>
                 <button class="btn btn-secondary btn-sm" onclick="regenerateYAML('${controllerName}')" title="Regenerate ESPHome YAML">🔄 Regenerate YAML</button>
                 <button class="btn btn-primary" onclick="downloadESPHomeConfig('${controllerName}')">📥 Download</button>
                 <button class="btn btn-success" onclick="window.open('/5c53de3b_esphome/ingress', '_blank')">🔧 Open ESPHome</button>
@@ -634,6 +635,77 @@ async function checkFirmwareBuild(controllerId, controllerName) {
         }
     } catch (error) {
         badge.innerHTML = '📦 Ready to Build';
+    }
+}
+
+async function editController(controllerId) {
+    const controller = controllers.find(c => c.id === controllerId);
+    if (!controller) {
+        showNotification('Controller not found', 'error');
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>✏️ Edit Controller</h2>
+            
+            <div class="form-group">
+                <label for="edit-controller-name">Name:</label>
+                <input type="text" id="edit-controller-name" value="${controller.name}" />
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-controller-ip">IP Address:</label>
+                <input type="text" id="edit-controller-ip" value="${controller.ip || ''}" placeholder="e.g., 10.1.10.154" />
+                <small>Leave blank for auto-discovery via mDNS</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-controller-mac">MAC Address:</label>
+                <input type="text" id="edit-controller-mac" value="${controller.mac || ''}" placeholder="AA:BB:CC:DD:EE:FF" />
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="saveControllerEdit(${controllerId})">💾 Save</button>
+                <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function saveControllerEdit(controllerId) {
+    const name = document.getElementById('edit-controller-name').value.trim();
+    const ip = document.getElementById('edit-controller-ip').value.trim();
+    const mac = document.getElementById('edit-controller-mac').value.trim();
+    
+    if (!name) {
+        showNotification('Controller name is required', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`api/controllers/${controllerId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, ip: ip || null, mac: mac || null })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Controller updated successfully!', 'success');
+            document.querySelector('.modal').remove();
+            await loadControllers();
+        } else {
+            showNotification(result.error || 'Failed to update controller', 'error');
+        }
+    } catch (error) {
+        showNotification('Error updating controller: ' + error.message, 'error');
     }
 }
 

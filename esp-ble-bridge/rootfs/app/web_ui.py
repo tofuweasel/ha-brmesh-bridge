@@ -192,6 +192,37 @@ class WebUI:
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)}), 500
         
+        @app.route('/api/controllers/<int:controller_id>', methods=['PUT'])
+        def update_controller(controller_id):
+            """Update controller details"""
+            try:
+                if 'controllers' not in self.bridge.config:
+                    return jsonify({'success': False, 'error': 'No controllers configured'}), 404
+                
+                data = request.json
+                controllers = self.bridge.config['controllers']
+                controller = next((c for c in controllers if c.get('id') == controller_id), None)
+                
+                if not controller:
+                    return jsonify({'success': False, 'error': 'Controller not found'}), 404
+                
+                # Update fields
+                if 'name' in data:
+                    controller['name'] = data['name']
+                if 'ip' in data:
+                    controller['ip'] = data['ip']
+                if 'mac' in data:
+                    controller['mac'] = data['mac']
+                
+                self.bridge.save_config()
+                
+                logger.info(f"✏️  Updated controller: {controller.get('name')} (ID: {controller_id})")
+                return jsonify({'success': True, 'controller': controller})
+                
+            except Exception as e:
+                logger.error(f"Failed to update controller: {e}")
+                return jsonify({'success': False, 'error': str(e)}), 500
+        
         @app.route('/api/controllers/<int:controller_id>', methods=['DELETE'])
         def delete_controller(controller_id):
             """Delete a controller"""
