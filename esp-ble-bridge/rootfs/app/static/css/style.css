@@ -475,6 +475,11 @@ header h1 {
     font-size: 0.85rem;
 }
 
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+
 .signal-matrix {
     margin-top: 30px;
 }
