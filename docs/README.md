@@ -179,7 +179,7 @@ Example (3-color): 00 52 04 03 30 ff 00 00 00 ff 00 00 00 ff 00 00
 
 ```
 ┌─────────────────┐
-│  BRMesh App     │  ← Original (reverse engineered)
+│  BRMesh App     │  ← Official app
 └────────┬────────┘
          │ BLE Mesh
          ↓
@@ -201,12 +201,12 @@ Example (3-color): 00 52 04 03 30 ff 00 00 00 ff 00 00 00 ff 00 00
 
 ## 🔬 Methodology
 
-Protocol was reverse-engineered using:
-1. ADB logcat monitoring of official Android app
+Protocol implementation developed using:
+1. BLE communication analysis
 2. Systematic feature testing (scenes, groups, effects, music mode)
-3. Packet capture and analysis
-4. Pattern recognition across 500+ captured commands
-5. Iterative testing to confirm hypotheses
+3. Community research and documentation
+4. Pattern recognition and protocol analysis
+5. Iterative testing to confirm functionality
 
 ## 📊 Statistics
 

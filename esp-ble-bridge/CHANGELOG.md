@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🎉 MAJOR FEATURE: Native BRMesh Pairing (No Android App!)
 
-**FIRST EVER** implementation of native BRMesh device pairing without requiring the Android app. Complete reverse engineering of the BRMesh protocol from ARM64 binary analysis.
+Native implementation of BRMesh device pairing without requiring the Android app. Complete protocol analysis enabling direct device pairing.
 
 ### Added
 
@@ -58,12 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical Details
 
-#### Reverse Engineering Achievement
-- Decompiled `libbroadlink_ble.so` (301KB ARM64-v8a) using Ghidra 11.2.1
-- Analyzed `com.brgd.brblmesh` Android app (18.5MB + 8.9MB ARM64)
-- Discovered pairing has **NO ENCRYPTION** - just structured data copying!
-- Control protocol uses simple XOR encryption (not AES as suspected)
-
 #### Pairing Protocol
 - **12-byte format**: Device MAC (6) + Address (1) + Constant (1) + Mesh Key (4)
 - **18-byte format**: Same + Group ID (1) + Padding (5)
@@ -75,22 +69,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Checksum XORed with magic constant: 0xc47b365e
 - Payload XORed with 4-byte mesh key (repeating pattern)
 
-#### Tools Used
-- Ghidra 11.2.1 - ARM64 binary reverse engineering
-- jadx 1.5.0 - APK decompilation
-- Java 21.0.2 - Required for Ghidra
-- adb - Android Debug Bridge for APK extraction
-
 ### Documentation
 - **BRMESH_PROTOCOL_COMPLETE.md** - Complete protocol documentation
 - **PAIRING_INTEGRATION_COMPLETE.md** - Integration guide and testing checklist
 
 ### Innovation
-This is the **FIRST public implementation** of native BRMesh pairing:
-- All previous implementations require Android app for initial pairing
-- No public documentation of pairing protocol existed
-- Control protocol only partially documented (mooody's blog)
-- Complete Python implementation now available
+This open-source implementation enables native BRMesh pairing:
+- No Android app required for initial pairing
+- Complete Python implementation available
+- Community-contributed protocol analysis
 
 ### Next Steps
 - ESP32 BLE scan implementation for device discovery
@@ -216,7 +203,7 @@ This is a complete rewrite of the BRMesh Bridge add-on with a focus on user expe
 
 ### Credits
 - **[@scross01](https://github.com/scross01)** - Creator and maintainer of [esphome-fastcon](https://github.com/scross01/esphome-fastcon) ESPHome component
-- **[Mooody](https://mooody.me/)** - Original Fastcon BLE protocol reverse engineering
+- **[Mooody](https://mooody.me/)** - Original Fastcon BLE protocol analysis
 - **[ArcadeMachinist](https://github.com/ArcadeMachinist)** - brMeshMQTT reference implementation
 - **Home Assistant Community** - Testing, feedback, and support
 

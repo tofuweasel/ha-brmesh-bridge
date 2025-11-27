@@ -108,4 +108,4 @@ git push origin optimized
 
 Fork maintained by: tofuweasel
 Original component: scross01, dennispg
-Protocol reverse engineering: Mooody, ArcadeMachinist
+Protocol analysis: Mooody, ArcadeMachinist
