@@ -33,7 +33,7 @@ class BRMeshDiscovery:
     
     async def scan_for_devices(self, duration: int = 30) -> List[Dict]:
         """
-        Scan for BRMesh devices via BLE
+        Scan for BRMesh devices via ESP32's BLE scanner
         
         Returns list of discovered devices with:
         - device_id: Extracted light ID
@@ -41,31 +41,86 @@ class BRMeshDiscovery:
         - rssi: Signal strength
         - name: Device name if available
         """
-        logger.info(f"Starting BLE scan for {duration} seconds...")
+        logger.info(f"Requesting ESP32 BLE scan for {duration} seconds via ESPHome logs...")
         self.scanning = True
         discovered = []
         
-        def detection_callback(device, advertisement_data):
-            """Called for each discovered device"""
-            # Log all devices at debug level
-            mfr_ids = list(advertisement_data.manufacturer_data.keys()) if advertisement_data.manufacturer_data else []
-            logger.debug(f"Scanned device: {device.address} ({device.name}) RSSI={advertisement_data.rssi} MFR_IDs={[hex(m) for m in mfr_ids]}")
-            
-            # Check if this looks like a BRMesh device
-            if self._is_brmesh_device(device, advertisement_data):
-                device_info = self._extract_device_info(device, advertisement_data)
-                if device_info and device_info['device_id'] not in [d['device_id'] for d in discovered]:
-                    discovered.append(device_info)
-                    logger.info(f"Discovered BRMesh device: ID={device_info['device_id']}, "
-                              f"MAC={device_info['mac_address']}, RSSI={device_info['rssi']}")
+        # Get configured ESPHome controllers
+        controllers = self.bridge.config.get('controllers', [])
+        if not controllers:
+            logger.error("No ESP32 controllers configured - cannot scan for devices")
+            self.scanning = False
+            return []
+        
+        # Use first controller for scanning
+        controller = controllers[0]
+        controller_name = controller.get('name', 'unknown')
         
         try:
-            scanner = BleakScanner(detection_callback=detection_callback)
-            await scanner.start()
-            await asyncio.sleep(duration)
-            await scanner.stop()
+            import socket
+            import requests
+            import re
+            
+            # Resolve controller hostname
+            hostname = f"{controller_name}.local"
+            try:
+                ip = socket.gethostbyname(hostname)
+            except:
+                logger.error(f"Cannot resolve {hostname} - controller offline?")
+                self.scanning = False
+                return []
+            
+            logger.info(f"Fetching BLE scan data from ESP32 at {ip}...")
+            
+            # Fetch logs from ESPHome (contains BLE scan results)
+            resp = requests.get(f'http://{ip}/logs', timeout=duration + 5, stream=True)
+            if not resp.ok:
+                logger.error(f"Failed to fetch logs from ESP32: HTTP {resp.status_code}")
+                self.scanning = False
+                return []
+            
+            # Parse logs for BRMesh devices (manufacturer UUID 0xf0ff)
+            # ESPHome logs format: [D][ble_scan:043]: Device: AA:BB:CC:DD:EE:FF RSSI: -65
+            #                      [D][ble_scan:050]:   Manufacturer UUID: 0xf0ff
+            logs_text = ""
+            for chunk in resp.iter_content(chunk_size=8192, decode_unicode=True):
+                if chunk:
+                    logs_text += chunk
+                    if len(logs_text) > 100000:  # 100KB limit
+                        break
+            
+            # Parse BLE scan results
+            lines = logs_text.split('\n')
+            current_device = None
+            
+            for line in lines:
+                # Match device line: [D][ble_scan:XXX]: Device: MAC RSSI: -XX
+                device_match = re.search(r'Device:\s+([0-9A-F:]{17})\s+RSSI:\s+(-?\d+)', line, re.IGNORECASE)
+                if device_match:
+                    current_device = {
+                        'mac_address': device_match.group(1),
+                        'rssi': int(device_match.group(2)),
+                        'device_id': None,
+                        'name': None
+                    }
+                    continue
+                
+                # Match manufacturer UUID line (must follow device line)
+                if current_device and 'Manufacturer UUID: 0x' in line:
+                    mfr_match = re.search(r'Manufacturer UUID:\s+0x([0-9a-fA-F]+)', line)
+                    if mfr_match:
+                        mfr_id = int(mfr_match.group(1), 16)
+                        if mfr_id == 0xf0ff:  # BRMesh manufacturer ID
+                            # Check if we already have this device
+                            if not any(d['mac_address'] == current_device['mac_address'] for d in discovered):
+                                current_device['name'] = f"BRMesh Light {current_device['mac_address'][-5:]}"
+                                current_device['device_id'] = len(discovered) + 1  # Temporary ID
+                                discovered.append(current_device)
+                                logger.info(f"Found BRMesh device: {current_device['mac_address']} (RSSI: {current_device['rssi']})")
+                        current_device = None
+            
         except Exception as e:
-            logger.error(f"BLE scan error: {e}")
+            logger.error(f"BLE scan error: {e}", exc_info=True)
         finally:
             self.scanning = False
         
