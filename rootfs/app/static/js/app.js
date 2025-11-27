@@ -853,6 +853,11 @@ async function createController() {
             <h2>🔨 Create New ESP32 Controller</h2>
             <p>Build and flash a new ESP32 controller. Just provide your WiFi credentials and we'll handle the rest!</p>
             
+            <div class="info-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">
+                <strong>📦 Firmware Version: 1.1</strong>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">Latest stable release with native mesh-based pairing</p>
+            </div>
+            
             <div class="form-group">
                 <label for="wifi-network-selector">WiFi Network: <span style="color: red;">*</span></label>
                 <select id="wifi-network-selector" onchange="toggleWiFiInputs()">
@@ -2213,6 +2218,66 @@ function viewLogs(controllerName) {
 }
 
 async function regenerateYAML(controllerName) {
+    // Check firmware version first
+    let firmwareInfo = { current_version: '1.1', latest_version: '1.1', update_available: false };
+    try {
+        const versionResponse = await fetch('api/firmware/check');
+        firmwareInfo = await versionResponse.json();
+    } catch (error) {
+        console.warn('Could not check firmware version:', error);
+    }
+    
+    // Show confirmation modal with version info
+    const updateBadge = firmwareInfo.update_available 
+        ? `<span style="background: #FF9800; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.9em; margin-left: 10px;">🎉 Update Available!</span>`
+        : `<span style="background: #4CAF50; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.9em; margin-left: 10px;">✅ Up to date</span>`;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>🔄 Regenerate Firmware</h2>
+            <p>Regenerate ESPHome configuration for <strong>${controllerName}</strong></p>
+            
+            <div class="info-box" style="background: ${firmwareInfo.update_available ? 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}; color: white; margin: 20px 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <strong>📦 Current Firmware: ${firmwareInfo.current_version}</strong>
+                        ${firmwareInfo.update_available ? `<br><strong>🎉 Latest Available: ${firmwareInfo.latest_version}</strong>` : ''}
+                    </div>
+                    ${updateBadge}
+                </div>
+                ${firmwareInfo.update_available ? `
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">
+                        A new firmware version is available! 
+                        <a href="${firmwareInfo.release_url}" target="_blank" style="color: white; text-decoration: underline;">View Release Notes</a>
+                    </p>
+                ` : `
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">You're running the latest firmware version</p>
+                `}
+            </div>
+            
+            <div class="info-box">
+                <strong>What happens:</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>ESPHome YAML will be regenerated with current settings</li>
+                    ${firmwareInfo.update_available ? '<li>⚠️ <strong>Download the latest firmware config from GitHub to get new features</strong></li>' : '<li>Configuration stays at current version</li>'}
+                    <li>You'll need to re-flash your ESP32 for changes to take effect</li>
+                </ul>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-success" onclick="confirmRegenerateYAML('${controllerName}'); this.parentElement.parentElement.parentElement.remove();">🔄 Regenerate</button>
+                <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function confirmRegenerateYAML(controllerName) {
     try {
         showNotification(`Regenerating YAML for ${controllerName}...`, 'info');
         const response = await fetch(`api/settings`, {

@@ -11,7 +11,7 @@ from brmesh_control import create_control_command
 from bleak import BleakClient
 
 MESH_KEY = bytes.fromhex('30323336')
-TARGET = '10:52:1C:B9:57:E2'
+TARGET = '78:B6:FE:60:E5:74'  # Found broadcasting RIGHT NOW!
 
 async def send_color_sequence():
     print("=" * 70)
