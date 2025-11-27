@@ -629,43 +629,66 @@ class WebUI:
             import socket
             import requests
             
+            logger.info(f"Fetching logs for controller: {controller_name}")
+            
             # Try to resolve mDNS hostname
             hostname = f"{controller_name}.local"
             try:
+                logger.debug(f"Resolving hostname: {hostname}")
                 ip = socket.gethostbyname(hostname)
-            except socket.gaierror:
-                logger.warning(f"Cannot resolve {hostname} - controller offline or not found")
+                logger.info(f"Resolved {hostname} to {ip}")
+            except (socket.gaierror, socket.herror, OSError) as e:
+                logger.warning(f"Cannot resolve {hostname}: {type(e).__name__} - {e}")
                 return jsonify({'error': f'Controller {controller_name} is offline or not found on network'}), 404
             except Exception as e:
-                logger.error(f"DNS resolution error for {hostname}: {e}")
+                logger.error(f"Unexpected DNS error for {hostname}: {type(e).__name__} - {e}", exc_info=True)
                 return jsonify({'error': f'Network error: {str(e)}'}), 500
             
             # Fetch logs from ESPHome web server (text format)
             try:
-                resp = requests.get(f'http://{ip}/logs', timeout=5, stream=True)
+                logger.debug(f"Fetching logs from http://{ip}/logs")
+                
+                # ESPHome /logs endpoint returns text/event-stream (SSE)
+                # We need to handle it differently than regular HTTP
+                resp = requests.get(f'http://{ip}/logs', timeout=10, stream=True, 
+                                    headers={'Accept': 'text/plain'})  # Request plain text instead of SSE
+                logger.debug(f"Response status: {resp.status_code}, Content-Type: {resp.headers.get('Content-Type')}")
+                
                 if not resp.ok:
+                    logger.warning(f"ESPHome returned HTTP {resp.status_code}")
                     return jsonify({'error': f'ESPHome returned HTTP {resp.status_code}'}), 500
                 
-                # Read the log stream (ESPHome returns text/event-stream)
-                # We'll collect the first chunk of logs
+                # Read the stream with a timeout
                 logs_text = ""
-                for chunk in resp.iter_content(chunk_size=8192, decode_unicode=True):
-                    if chunk:
-                        logs_text += chunk
-                        if len(logs_text) > 50000:  # Limit to ~50KB
-                            break
+                try:
+                    # Read line by line to handle SSE format
+                    for line in resp.iter_lines(decode_unicode=True, delimiter='\n'):
+                        if line:
+                            logs_text += line + '\n'
+                            if len(logs_text) > 50000:  # Limit to ~50KB
+                                break
+                except Exception as read_err:
+                    logger.warning(f"Stream read interrupted: {read_err}")
+                    # If we got some data before the error, return it
+                    if not logs_text:
+                        raise
+                
+                logger.info(f"Successfully fetched {len(logs_text)} bytes of logs")
                 
                 # Return raw text logs (frontend will display as-is)
                 return jsonify({
-                    'logs': logs_text,
+                    'logs': logs_text if logs_text else 'No logs available yet',
                     'raw': True  # Tell frontend this is raw text
                 })
                 
             except requests.exceptions.Timeout:
                 logger.warning(f"Timeout fetching logs from {ip}")
                 return jsonify({'error': 'Request timed out - controller may be busy'}), 504
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"Connection error from {ip}: {e}")
+                return jsonify({'error': 'Connection refused - web server may not be running'}), 503
             except Exception as e:
-                logger.error(f"Failed to fetch logs from {ip}: {e}")
+                logger.error(f"Failed to fetch logs from {ip}: {type(e).__name__} - {e}", exc_info=True)
                 return jsonify({'error': f'Failed to fetch logs: {str(e)}'}), 500
         
         @app.route('/api/esphome/download/<controller_name>')
