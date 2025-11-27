@@ -67,7 +67,7 @@ class ESPHomeConfigGenerator:
                 }
             },
             'logger': {
-                'level': 'INFO'
+                'level': 'DEBUG'
             },
             'api': {
                 'encryption': {
