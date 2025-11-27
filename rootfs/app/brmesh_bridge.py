@@ -455,7 +455,7 @@ class BRMeshBridge:
         """Main run loop"""
         logger.info("=" * 80)
         logger.info("=" * 80)
-        logger.info("🚀 BRMesh Bridge v0.30.14 - Starting Up (Bashio)")
+        logger.info("🚀 BRMesh Bridge v0.30.15 - Starting Up (Bashio)")
         logger.info("=" * 80)
         logger.info(f"📡 Mesh Key: {self.mesh_key if self.mesh_key else '(not configured - use Web UI)'}")
         logger.info(f"🔌 MQTT Broker: {self.mqtt_host}:{self.mqtt_port}")
