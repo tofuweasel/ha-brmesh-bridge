@@ -784,3 +784,117 @@ body.dark-mode .scene-light-color {
     margin-top: 20px;
     justify-content: flex-end;
 }
+
+/* Logs Panel Styles */
+.logs-panel {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.logs-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.logs-controls select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.95rem;
+    background: white;
+    cursor: pointer;
+}
+
+.log-viewer {
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+    padding: 15px;
+    border-radius: 5px;
+    height: 600px;
+    overflow-y: auto;
+    border: 1px solid #30363d;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.log-placeholder {
+    color: #8b949e;
+    text-align: center;
+    padding: 50px;
+    font-style: italic;
+}
+
+.log-entry {
+    padding: 4px 0;
+    border-bottom: 1px solid #21262d;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-timestamp {
+    color: #8b949e;
+    margin-right: 8px;
+}
+
+.log-level-E {
+    color: #ff7b72;
+    font-weight: bold;
+}
+
+.log-level-W {
+    color: #f0883e;
+}
+
+.log-level-I {
+    color: #58a6ff;
+}
+
+.log-level-D {
+    color: #56d364;
+}
+
+.log-level-V {
+    color: #a371f7;
+}
+
+.log-tag {
+    color: #ffa657;
+    margin: 0 8px;
+}
+
+.log-message {
+    color: #c9d1d9;
+}
+
+/* Dark mode logs styling */
+body.dark-mode .logs-panel {
+    background: #1e2836;
+}
+
+body.dark-mode .logs-controls select {
+    background: #2d3748;
+    color: #e0e0e0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .log-viewer {
+    background: #0d1117;
+    border-color: #30363d;
+}

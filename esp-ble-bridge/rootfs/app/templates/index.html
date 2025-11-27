@@ -28,6 +28,7 @@
             <button class="tab-btn" data-tab="controllers">📡 Controllers</button>
             <button class="tab-btn" data-tab="effects">✨ Effects</button>
             <button class="tab-btn" data-tab="scenes">🎬 Scenes</button>
+            <button class="tab-btn" data-tab="logs">📋 Logs</button>
             <button class="tab-btn" data-tab="map">🗺️ Map View</button>
             <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
         </div>
@@ -97,6 +98,52 @@
                     <!-- Populated by JavaScript -->
                 </div>
                 <button id="create-scene-btn" class="btn btn-primary">➕ Create New Scene</button>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="logs-tab" class="tab-content">
+            <div class="logs-panel">
+                <div class="logs-header">
+                    <h2>📋 Live Controller Logs</h2>
+                    <div class="logs-controls">
+                        <div class="form-group" style="display: inline-block; margin-right: 15px;">
+                            <label for="log-controller">Controller:</label>
+                            <select id="log-controller" onchange="switchLogController()">
+                                <option value="">Select Controller...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: inline-block; margin-right: 15px;">
+                            <label for="log-level">Log Level:</label>
+                            <select id="log-level" onchange="filterLogs()">
+                                <option value="all">All Levels</option>
+                                <option value="E">🔴 Error</option>
+                                <option value="W">🟡 Warning</option>
+                                <option value="I">🔵 Info</option>
+                                <option value="D" selected>🟢 Debug</option>
+                                <option value="V">⚪ Verbose</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: inline-block; margin-right: 15px;">
+                            <label for="log-category">Category:</label>
+                            <select id="log-category" onchange="filterLogs()">
+                                <option value="all">All Categories</option>
+                                <option value="pairing">🔗 Pairing</option>
+                                <option value="ble_scan">📡 BLE Scan</option>
+                                <option value="fastcon">💡 Light Control</option>
+                                <option value="group">👥 Groups</option>
+                                <option value="scene">🎬 Scenes</option>
+                                <option value="wifi">📶 WiFi</option>
+                                <option value="api">🔌 API</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" onclick="clearLogDisplay()">🗑️ Clear</button>
+                        <button class="btn btn-primary" onclick="toggleLogStream()">⏸️ Pause</button>
+                    </div>
+                </div>
+                <div id="log-viewer" class="log-viewer">
+                    <div class="log-placeholder">Select a controller to view logs...</div>
+                </div>
             </div>
         </div>
 

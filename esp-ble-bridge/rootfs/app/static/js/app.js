@@ -163,6 +163,7 @@ async function loadControllers() {
         }));
         renderControllers();
         updateMapMarkers();
+        initLogViewer(); // Update log controller dropdown
     } catch (error) {
         console.error('Failed to load controllers:', error);
     }
@@ -2250,4 +2251,160 @@ async function systemReset() {
         console.error('System reset error:', error);
         showNotification(`❌ Failed to reset system: ${error.message}`, 'error');
     }
+}
+
+// ========================================
+// Log Viewer Functions
+// ========================================
+
+let logStreamActive = false;
+let logStreamInterval = null;
+let allLogEntries = [];
+let currentLogController = null;
+
+async function initLogViewer() {
+    // Populate controller dropdown
+    const controllerSelect = document.getElementById('log-controller');
+    if (!controllerSelect) return;
+    
+    controllerSelect.innerHTML = '<option value="">Select Controller...</option>';
+    controllers.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c.name;
+        option.textContent = c.name;
+        controllerSelect.appendChild(option);
+    });
+}
+
+function switchLogController() {
+    const controllerSelect = document.getElementById('log-controller');
+    const controllerName = controllerSelect?.value;
+    
+    if (!controllerName) {
+        stopLogStream();
+        document.getElementById('log-viewer').innerHTML = '<div class="log-placeholder">Select a controller to view logs...</div>';
+        return;
+    }
+    
+    currentLogController = controllerName;
+    allLogEntries = [];
+    document.getElementById('log-viewer').innerHTML = '<div class="log-placeholder">Connecting to log stream...</div>';
+    
+    startLogStream();
+}
+
+function startLogStream() {
+    if (logStreamActive || !currentLogController) return;
+    
+    logStreamActive = true;
+    document.querySelector('[onclick="toggleLogStream()"]').textContent = '⏸️ Pause';
+    
+    // Fetch logs every 2 seconds
+    fetchLogs();
+    logStreamInterval = setInterval(fetchLogs, 2000);
+}
+
+function stopLogStream() {
+    logStreamActive = false;
+    if (logStreamInterval) {
+        clearInterval(logStreamInterval);
+        logStreamInterval = null;
+    }
+    document.querySelector('[onclick="toggleLogStream()"]').textContent = '▶️ Resume';
+}
+
+function toggleLogStream() {
+    if (logStreamActive) {
+        stopLogStream();
+    } else {
+        startLogStream();
+    }
+}
+
+async function fetchLogs() {
+    if (!currentLogController) return;
+    
+    try {
+        // Fetch from ESPHome logs API (we'll need to add this endpoint)
+        const response = await fetch(`/api/esphome/logs/${currentLogController}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        if (data.logs && Array.isArray(data.logs)) {
+            // Append new logs
+            allLogEntries.push(...data.logs);
+            
+            // Keep only last 500 entries
+            if (allLogEntries.length > 500) {
+                allLogEntries = allLogEntries.slice(-500);
+            }
+            
+            filterLogs();
+        }
+    } catch (error) {
+        console.error('Failed to fetch logs:', error);
+    }
+}
+
+function filterLogs() {
+    const logLevel = document.getElementById('log-level')?.value || 'all';
+    const logCategory = document.getElementById('log-category')?.value || 'all';
+    const logViewer = document.getElementById('log-viewer');
+    
+    if (!logViewer || allLogEntries.length === 0) return;
+    
+    // Map log levels to priorities
+    const levelPriority = { 'V': 0, 'D': 1, 'I': 2, 'W': 3, 'E': 4 };
+    const minPriority = logLevel === 'all' ? -1 : levelPriority[logLevel];
+    
+    const filtered = allLogEntries.filter(entry => {
+        // Filter by log level
+        if (minPriority >= 0 && levelPriority[entry.level] < minPriority) {
+            return false;
+        }
+        
+        // Filter by category
+        if (logCategory !== 'all' && !entry.tag.includes(logCategory)) {
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Render logs
+    if (filtered.length === 0) {
+        logViewer.innerHTML = '<div class="log-placeholder">No logs match current filters</div>';
+        return;
+    }
+    
+    let html = '';
+    filtered.forEach(entry => {
+        html += `<div class="log-entry">`;
+        html += `<span class="log-timestamp">${entry.timestamp}</span>`;
+        html += `<span class="log-level-${entry.level}">[${entry.level}]</span>`;
+        html += `<span class="log-tag">[${entry.tag}]</span>`;
+        html += `<span class="log-message">${escapeHtml(entry.message)}</span>`;
+        html += `</div>`;
+    });
+    
+    logViewer.innerHTML = html;
+    
+    // Auto-scroll to bottom if not manually scrolled up
+    if (logViewer.scrollHeight - logViewer.scrollTop - logViewer.clientHeight < 100) {
+        logViewer.scrollTop = logViewer.scrollHeight;
+    }
+}
+
+function clearLogDisplay() {
+    allLogEntries = [];
+    const logViewer = document.getElementById('log-viewer');
+    if (logViewer) {
+        logViewer.innerHTML = '<div class="log-placeholder">Logs cleared. Streaming continues...</div>';
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

@@ -621,6 +621,52 @@ class WebUI:
                 logger.error(f"Failed to get ESPHome status: {e}")
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/esphome/logs/<controller_name>')
+        def get_esphome_logs(controller_name):
+            """Get recent logs from ESPHome device"""
+            try:
+                import socket
+                import requests
+                import re
+                from datetime import datetime
+                
+                # Try to resolve mDNS hostname
+                hostname = f"{controller_name}.local"
+                try:
+                    ip = socket.gethostbyname(hostname)
+                except:
+                    return jsonify({'error': 'Controller offline or not found'}), 404
+                
+                # Fetch logs from ESPHome web server
+                # ESPHome doesn't have a JSON API for logs, so we'll parse the log page
+                try:
+                    resp = requests.get(f'http://{ip}/logs', timeout=3)
+                    if not resp.ok:
+                        return jsonify({'error': 'Failed to fetch logs'}), 500
+                    
+                    # Parse log entries from HTML
+                    # Format: [HH:MM:SS][LEVEL][TAG]: message
+                    log_pattern = r'\[(\d{2}:\d{2}:\d{2})\]\[([EWDIV])\]\[([^\]]+)\]:\s*(.*?)(?=\[|$)'
+                    matches = re.findall(log_pattern, resp.text, re.MULTILINE | re.DOTALL)
+                    
+                    logs = []
+                    for timestamp, level, tag, message in matches[-100:]:  # Last 100 entries
+                        logs.append({
+                            'timestamp': timestamp.strip(),
+                            'level': level.strip(),
+                            'tag': tag.strip(),
+                            'message': message.strip()
+                        })
+                    
+                    return jsonify({'logs': logs})
+                except Exception as e:
+                    logger.error(f"Failed to parse logs: {e}")
+                    return jsonify({'error': f'Failed to parse logs: {str(e)}'}), 500
+                    
+            except Exception as e:
+                logger.error(f"Failed to get ESPHome logs: {e}")
+                return jsonify({'error': str(e)}), 500
+        
         @app.route('/api/esphome/download/<controller_name>')
         def download_esphome_config(controller_name):
             """Download ESPHome YAML for a specific controller"""
