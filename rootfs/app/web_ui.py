@@ -644,52 +644,53 @@ class WebUI:
                 logger.error(f"Unexpected DNS error for {hostname}: {type(e).__name__} - {e}", exc_info=True)
                 return jsonify({'error': f'Network error: {str(e)}'}), 500
             
-            # Fetch logs from ESPHome web server (text format)
-            try:
-                logger.debug(f"Fetching logs from http://{ip}/logs")
-                
-                # ESPHome /logs endpoint returns text/event-stream (SSE)
-                # We need to handle it differently than regular HTTP
-                resp = requests.get(f'http://{ip}/logs', timeout=10, stream=True, 
-                                    headers={'Accept': 'text/plain'})  # Request plain text instead of SSE
-                logger.debug(f"Response status: {resp.status_code}, Content-Type: {resp.headers.get('Content-Type')}")
-                
-                if not resp.ok:
-                    logger.warning(f"ESPHome returned HTTP {resp.status_code}")
-                    return jsonify({'error': f'ESPHome returned HTTP {resp.status_code}'}), 500
-                
-                # Read the stream with a timeout
-                logs_text = ""
-                try:
-                    # Read line by line to handle SSE format
-                    for line in resp.iter_lines(decode_unicode=True, delimiter='\n'):
-                        if line:
-                            logs_text += line + '\n'
-                            if len(logs_text) > 50000:  # Limit to ~50KB
-                                break
-                except Exception as read_err:
-                    logger.warning(f"Stream read interrupted: {read_err}")
-                    # If we got some data before the error, return it
-                    if not logs_text:
-                        raise
-                
-                logger.info(f"Successfully fetched {len(logs_text)} bytes of logs")
-                
-                # Return raw text logs (frontend will display as-is)
-                return jsonify({
-                    'logs': logs_text if logs_text else 'No logs available yet',
-                    'raw': True  # Tell frontend this is raw text
-                })
-                
-            except requests.exceptions.Timeout:
-                logger.warning(f"Timeout fetching logs from {ip}")
-                return jsonify({'error': 'Request timed out - controller may be busy'}), 504
-            except requests.exceptions.ConnectionError as e:
-                logger.error(f"Connection error from {ip}: {e}")
-                return jsonify({'error': 'Connection refused - web server may not be running'}), 503
-            except Exception as e:
-                logger.error(f"Failed to fetch logs from {ip}: {type(e).__name__} - {e}", exc_info=True)
-                return jsonify({'error': f'Failed to fetch logs: {str(e)}'}), 500
+            # ESPHome's HTTP /logs endpoint is known to be unreliable
+            # It often returns ERR_EMPTY_RESPONSE or closes connections
+            # The proper way is to use ESPHome API (port 6053) but that requires aioesphomeapi
+            
+            # For now, provide a helpful message with alternatives
+            logger.debug(f"ESPHome logs requested for {controller_name} (IP: {ip})")
+            
+            help_message = f"""📋 ESPHome Logs for {controller_name}
+
+⚠️  Direct HTTP log streaming is not available
+    (ESPHome's /logs endpoint returns ERR_EMPTY_RESPONSE)
+
+📍 Controller Status: ✅ Online at {ip} ({hostname})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 How to View Logs:
+
+Option 1: ESPHome Dashboard (Recommended)
+   1. Go to Settings → Add-ons → ESPHome
+   2. Click "OPEN WEB UI"
+   3. Find "{controller_name}" in the list
+   4. Click the three dots (⋮) → "LOGS"
+   5. Logs will stream in real-time
+
+Option 2: Direct Web Interface
+   Open http://{hostname}/ in your browser
+   (Note: The /logs endpoint doesn't work, but the main page does)
+
+Option 3: Add to Home Assistant
+   1. Settings → Devices & Services → ESPHome
+   2. Add this device using encryption key from secrets.yaml
+   3. View logs through HA's ESPHome integration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Technical Note:
+   To implement proper log streaming here, we would need to use
+   ESPHome's Native API (port 6053) with aioesphomeapi library.
+   The HTTP /logs endpoint is unreliable and often fails.
+"""
+            
+            return jsonify({
+                'logs': help_message,
+                'raw': True,
+                'is_placeholder': True
+            })
         
         @app.route('/api/esphome/download/<controller_name>')
         def download_esphome_config(controller_name):
