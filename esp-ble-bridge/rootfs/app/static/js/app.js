@@ -986,6 +986,8 @@ async function saveController(buttonElement) {
     let location;
     if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
         location = { x: lon, y: lat };
+    } else if (config.latitude && config.longitude) {
+        location = { x: config.longitude, y: config.latitude };
     } else if (config.map_latitude && config.map_longitude) {
         location = { x: config.map_longitude, y: config.map_latitude };
     } else {
@@ -1126,9 +1128,9 @@ Click INSTALL to build and flash firmware via USB or OTA.
 
 // Map Functions
 function initMap() {
-    const lat = config.map_latitude || 0;
-    const lon = config.map_longitude || 0;
-    const zoom = config.map_zoom || 18;
+    const lat = config.latitude || config.map_latitude || 0;
+    const lon = config.longitude || config.map_longitude || 0;
+    const zoom = config.zoom || config.map_zoom || 18;
     
     map = L.map('map').setView([lat, lon], zoom);
     
