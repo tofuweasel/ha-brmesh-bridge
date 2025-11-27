@@ -2407,3 +2407,201 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ============================================
+// Pairing Functions
+// ============================================
+
+let discoveredDevices = [];
+
+async function scanForPairingDevices() {
+    const btn = document.getElementById('scan-pairing-btn');
+    const status = document.getElementById('pairing-status');
+    const devicesList = document.getElementById('devices-list');
+    const discoveredDiv = document.getElementById('discovered-devices');
+    
+    btn.disabled = true;
+    btn.textContent = '📡 Scanning...';
+    status.style.display = 'block';
+    status.className = 'status-message info';
+    status.textContent = 'Scanning for unpaired BRMesh devices...';
+    
+    try {
+        const response = await fetch('/api/pairing/discover');
+        const devices = await response.json();
+        
+        discoveredDevices = devices;
+        
+        if (devices.length === 0) {
+            status.className = 'status-message warning';
+            status.textContent = '⚠️ No unpaired devices found. Make sure your light is in pairing mode (flashing rapidly).';
+            discoveredDiv.style.display = 'none';
+        } else {
+            status.className = 'status-message success';
+            status.textContent = `✅ Found ${devices.length} unpaired device(s)`;
+            discoveredDiv.style.display = 'block';
+            
+            // Render devices list
+            let html = '';
+            devices.forEach((device, index) => {
+                html += `
+                    <div class="device-card">
+                        <div class="device-info">
+                            <strong>${device.name || 'BRMesh Light'}</strong>
+                            <div class="device-details">
+                                <span>📍 MAC: ${device.mac}</span>
+                                <span>📶 RSSI: ${device.rssi} dBm</span>
+                                ${device.manufacturer ? `<span>🏷️ ${device.manufacturer}</span>` : ''}
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="pairDevice('${device.mac}', ${index})">
+                            🔗 Pair
+                        </button>
+                    </div>
+                `;
+            });
+            devicesList.innerHTML = html;
+        }
+        
+    } catch (error) {
+        status.className = 'status-message error';
+        status.textContent = '❌ Error scanning for devices: ' + error.message;
+        discoveredDiv.style.display = 'none';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📡 Scan for Devices';
+    }
+}
+
+async function pairDevice(mac, deviceIndex) {
+    const status = document.getElementById('pairing-status');
+    const address = parseInt(document.getElementById('pairing-address').value);
+    const groupId = parseInt(document.getElementById('pairing-group').value);
+    const meshKey = document.getElementById('pairing-mesh-key').value;
+    
+    status.style.display = 'block';
+    status.className = 'status-message info';
+    status.textContent = `⏳ Pairing device ${mac}...`;
+    
+    try {
+        const response = await fetch('/api/pairing/pair', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                mac: mac,
+                address: address,
+                group_id: groupId,
+                mesh_key: meshKey
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            status.className = 'status-message success';
+            status.textContent = `✅ Device ${mac} paired successfully! Pairing response: ${result.pairing_response}`;
+            
+            // Increment address for next device
+            document.getElementById('pairing-address').value = address + 1;
+            
+            // Remove device from discovered list
+            discoveredDevices.splice(deviceIndex, 1);
+            
+            // Refresh lights list
+            await loadLights();
+            
+            showNotification(`✅ Device ${mac} paired as Light ${address}`, 'success');
+        } else {
+            status.className = 'status-message error';
+            status.textContent = `❌ Pairing failed: ${result.error}`;
+        }
+        
+    } catch (error) {
+        status.className = 'status-message error';
+        status.textContent = '❌ Error pairing device: ' + error.message;
+    }
+}
+
+async function sendTestCommand(commandType) {
+    const testStatus = document.getElementById('test-status');
+    const address = parseInt(document.getElementById('pairing-address').value) - 1; // Test on last paired device
+    
+    if (address < 1) {
+        testStatus.style.display = 'block';
+        testStatus.className = 'status-message warning';
+        testStatus.textContent = '⚠️ No devices paired yet. Pair a device first.';
+        return;
+    }
+    
+    testStatus.style.display = 'block';
+    testStatus.className = 'status-message info';
+    testStatus.textContent = `⏳ Sending ${commandType} command to address ${address}...`;
+    
+    // Generate payload based on command type
+    let payload = '';
+    switch (commandType) {
+        case 'on':
+            payload = '0164ffffff'; // Turn on, brightness 100, white
+            break;
+        case 'off':
+            payload = '0000000000'; // Turn off
+            break;
+        case 'brightness':
+            payload = '0132ffffff'; // Turn on, brightness 50, white
+            break;
+    }
+    
+    try {
+        const response = await fetch('/api/control/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                address: address,
+                command_type: 1, // Control command
+                payload: payload,
+                seq: Math.floor(Math.random() * 256)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            testStatus.className = 'status-message success';
+            testStatus.textContent = `✅ Command sent! Command: ${result.command} (${result.length} bytes)`;
+        } else {
+            testStatus.className = 'status-message error';
+            testStatus.textContent = `❌ Command failed: ${result.error}`;
+        }
+        
+    } catch (error) {
+        testStatus.className = 'status-message error';
+        testStatus.textContent = '❌ Error sending command: ' + error.message;
+    }
+}
+
+// Setup pairing event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const scanBtn = document.getElementById('scan-pairing-btn');
+    if (scanBtn) {
+        scanBtn.addEventListener('click', scanForPairingDevices);
+    }
+    
+    const testOnBtn = document.getElementById('test-on-btn');
+    if (testOnBtn) {
+        testOnBtn.addEventListener('click', () => sendTestCommand('on'));
+    }
+    
+    const testOffBtn = document.getElementById('test-off-btn');
+    if (testOffBtn) {
+        testOffBtn.addEventListener('click', () => sendTestCommand('off'));
+    }
+    
+    const testBrightnessBtn = document.getElementById('test-brightness-btn');
+    if (testBrightnessBtn) {
+        testBrightnessBtn.addEventListener('click', () => sendTestCommand('brightness'));
+    }
+});

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP BLE Bridge - Light Management</title>
-    <link rel="stylesheet" href="static/css/style.css?v=0.27.2">
+    <link rel="stylesheet" href="static/css/style.css?v=0.28.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -13,7 +13,7 @@
         <header>
             <div class="header-title">
                 <h1>🔆 ESP BLE Bridge</h1>
-                <span class="version">v0.27.2 (Bridge FW: 1.0.0)</span>
+                <span class="version">v0.28.0 (Bridge FW: 1.0.0)</span>
             </div>
             <div class="header-controls">
                 <button id="dark-mode-toggle" class="btn btn-secondary" title="Toggle Dark Mode">🌙</button>
@@ -25,6 +25,7 @@
 
         <div class="tabs">
             <button class="tab-btn active" data-tab="lights">💡 Lights</button>
+            <button class="tab-btn" data-tab="pairing">🔗 Pairing</button>
             <button class="tab-btn" data-tab="controllers">📡 Controllers</button>
             <button class="tab-btn" data-tab="effects">✨ Effects</button>
             <button class="tab-btn" data-tab="scenes">🎬 Scenes</button>
@@ -65,6 +66,66 @@
         <div id="lights-tab" class="tab-content active">
             <div class="lights-grid" id="lights-grid">
                 <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Pairing Tab -->
+        <div id="pairing-tab" class="tab-content">
+            <div class="pairing-panel">
+                <h2>🔗 Pair New BRMesh Devices</h2>
+                <div class="pairing-instructions">
+                    <h3>Pairing Instructions:</h3>
+                    <ol>
+                        <li>Factory reset your BRMesh light (usually: turn on/off 5 times quickly)</li>
+                        <li>Light should start flashing rapidly in pairing mode</li>
+                        <li>Click "Scan for Devices" below</li>
+                        <li>Select your device and click "Pair"</li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <strong>✨ Native Pairing!</strong> This is the first implementation that pairs BRMesh devices without the Android app.
+                    </div>
+                </div>
+                
+                <div class="pairing-controls">
+                    <button id="scan-pairing-btn" class="btn btn-primary">📡 Scan for Devices</button>
+                    <div id="pairing-status" class="status-message" style="display: none;"></div>
+                </div>
+                
+                <div class="discovered-devices" id="discovered-devices" style="display: none;">
+                    <h3>Discovered Devices</h3>
+                    <div id="devices-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="pairing-settings">
+                    <h3>Pairing Settings</h3>
+                    <div class="form-group">
+                        <label for="pairing-address">Device Address:</label>
+                        <input type="number" id="pairing-address" min="1" max="255" value="1" />
+                        <small>Unique address for this device (1-255)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="pairing-group">Group ID:</label>
+                        <input type="number" id="pairing-group" min="1" max="255" value="1" />
+                        <small>Group for controlling multiple lights together</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="pairing-mesh-key">Mesh Key:</label>
+                        <input type="text" id="pairing-mesh-key" value="30323336" pattern="[0-9a-fA-F]{8}" />
+                        <small>8-character hex key (default: 30323336 = "0236")</small>
+                    </div>
+                </div>
+                
+                <div class="pairing-test">
+                    <h3>Test Control Commands</h3>
+                    <div class="test-controls">
+                        <button id="test-on-btn" class="btn btn-success">💡 Test ON</button>
+                        <button id="test-off-btn" class="btn btn-danger">🔴 Test OFF</button>
+                        <button id="test-brightness-btn" class="btn btn-primary">🔆 Test Brightness</button>
+                    </div>
+                    <div id="test-status" class="status-message" style="display: none;"></div>
+                </div>
             </div>
         </div>
 

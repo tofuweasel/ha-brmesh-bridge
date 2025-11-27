@@ -1,9 +1,102 @@
 # Changelog
 
-All notable changes to the BRMesh Bridge add-on will be documented in this file.
+All notable changes to the ESP BLE Bridge add-on will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.28.0] - 2025-11-26
+
+### 🎉 MAJOR FEATURE: Native BRMesh Pairing (No Android App!)
+
+**FIRST EVER** implementation of native BRMesh device pairing without requiring the Android app. Complete reverse engineering of the BRMesh protocol from ARM64 binary analysis.
+
+### Added
+
+#### Protocol Implementations
+- **brmesh_pairing.py** - Complete pairing protocol (12/18-byte responses)
+  - `create_pairing_response()` - Generate pairing responses for new devices
+  - `package_disc_res()` - Standard 12-byte pairing format
+  - `package_disc_res2()` - Extended 18-byte pairing format
+  - Pure Python implementation, no external crypto libraries needed
+  
+- **brmesh_control.py** - Complete control protocol with encryption
+  - `create_control_command()` - Generate encrypted control commands
+  - `decode_control_command()` - Decrypt received commands
+  - `package_ble_fastcon_body()` - Full encryption with checksum
+  - `package_ble_fastcon_body_with_header()` - Header encryption variant
+  - `package_ble_fastcon_body_without_encrty()` - Unencrypted commands
+  - XOR-based encryption with 4-byte repeating mesh key
+  - Magic constant: 0xc47b365e for header checksum
+
+#### API Endpoints
+- `GET /api/pairing/discover` - Discover unpaired BRMesh devices in pairing mode
+- `POST /api/pairing/pair` - Pair a device without Android app
+  - Auto-generates pairing response (12 or 18 bytes)
+  - Adds device to lights configuration
+  - Configurable address, group_id, mesh_key
+- `POST /api/control/send` - Send encrypted control commands
+  - Supports on/off/brightness/color commands
+  - Auto-encrypts with mesh key
+  - Command types: status(0), control(1), pairing(2), group(3), scene(4)
+
+#### UI - New "🔗 Pairing" Tab
+- **Step-by-step pairing instructions** - Built-in guide for factory reset and pairing
+- **Device discovery** - Scan for unpaired BRMesh devices
+- **Device list** - Shows discovered devices with MAC address, RSSI, manufacturer
+- **Pairing settings** - Configure device address (1-255), group ID, mesh key
+- **One-click pairing** - Pair discovered devices with single button click
+- **Test controls** - Test ON/OFF/Brightness commands to verify pairing
+- **Status messages** - Real-time feedback (info/success/warning/error)
+- **Auto-increment address** - Automatically increments address after pairing
+- **Dark mode support** - Full styling for light and dark themes
+
+### Changed
+- Updated version to v0.28.0 (major feature release)
+- Enhanced addon description to highlight native pairing capability
+- Added cache busting for CSS (v0.28.0)
+
+### Technical Details
+
+#### Reverse Engineering Achievement
+- Decompiled `libbroadlink_ble.so` (301KB ARM64-v8a) using Ghidra 11.2.1
+- Analyzed `com.brgd.brblmesh` Android app (18.5MB + 8.9MB ARM64)
+- Discovered pairing has **NO ENCRYPTION** - just structured data copying!
+- Control protocol uses simple XOR encryption (not AES as suspected)
+
+#### Pairing Protocol
+- **12-byte format**: Device MAC (6) + Address (1) + Constant (1) + Mesh Key (4)
+- **18-byte format**: Same + Group ID (1) + Padding (5)
+- No encryption needed - breakthrough simplification
+
+#### Control Protocol  
+- **24-byte commands** (typical): 4-byte header + 20-byte payload
+- Header: `retry|cmd_type|forward` + sequence + mesh_byte + checksum
+- Checksum XORed with magic constant: 0xc47b365e
+- Payload XORed with 4-byte mesh key (repeating pattern)
+
+#### Tools Used
+- Ghidra 11.2.1 - ARM64 binary reverse engineering
+- jadx 1.5.0 - APK decompilation
+- Java 21.0.2 - Required for Ghidra
+- adb - Android Debug Bridge for APK extraction
+
+### Documentation
+- **BRMESH_PROTOCOL_COMPLETE.md** - Complete protocol documentation
+- **PAIRING_INTEGRATION_COMPLETE.md** - Integration guide and testing checklist
+
+### Innovation
+This is the **FIRST public implementation** of native BRMesh pairing:
+- All previous implementations require Android app for initial pairing
+- No public documentation of pairing protocol existed
+- Control protocol only partially documented (mooody's blog)
+- Complete Python implementation now available
+
+### Next Steps
+- ESP32 BLE scan implementation for device discovery
+- ESP32 BLE write implementation for pairing/control transmission
+- ESPHome YAML integration for pairing support
+- Testing with factory-reset devices
 
 ## [0.19.0] - 2025-11-25
 

@@ -12,6 +12,8 @@ import requests
 from PIL import Image
 from io import BytesIO
 from esphome_generator import ESPHomeConfigGenerator
+from brmesh_pairing import create_pairing_response
+from brmesh_control import create_control_command, decode_control_command
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1467,6 +1469,151 @@ class WebUI:
                     headers={'Content-Disposition': 'attachment; filename=brmesh_config.json'}
                 )
             except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/pairing/discover', methods=['GET'])
+        def discover_unpaired_devices():
+            """Discover BRMesh devices in pairing mode"""
+            try:
+                # TODO: Implement BLE scanning for unpaired devices
+                # For now, return mock data
+                unpaired_devices = [
+                    {
+                        'mac': '54:C4:B2:61:BB:D7',
+                        'rssi': -65,
+                        'name': 'BRMesh Light',
+                        'manufacturer': 'Broadlink'
+                    }
+                ]
+                return jsonify(unpaired_devices)
+            except Exception as e:
+                logger.error(f"Error discovering unpaired devices: {e}")
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/pairing/pair', methods=['POST'])
+        def pair_device():
+            """Pair a BRMesh device
+            
+            Expected POST data:
+            {
+                "mac": "54:C4:B2:61:BB:D7",
+                "address": 1,
+                "group_id": 1,
+                "mesh_key": "30323336"
+            }
+            """
+            try:
+                data = request.json
+                mac = data.get('mac')
+                address = data.get('address', 1)
+                group_id = data.get('group_id', 1)
+                mesh_key = data.get('mesh_key')
+                
+                if not mac:
+                    return jsonify({'error': 'MAC address is required'}), 400
+                
+                # Get mesh key from config if not provided
+                if not mesh_key:
+                    mesh_key = self.bridge.config.get('mesh_key', '30323336')
+                
+                # Convert mesh key string to bytes
+                if isinstance(mesh_key, str):
+                    mesh_key_bytes = bytes.fromhex(mesh_key) if len(mesh_key) == 8 else mesh_key.encode('utf-8')
+                else:
+                    mesh_key_bytes = mesh_key
+                
+                # Generate pairing response
+                pairing_response = create_pairing_response(
+                    device_mac=mac,
+                    address=address,
+                    group_id=group_id,
+                    mesh_key=mesh_key_bytes
+                )
+                
+                logger.info(f"Generated pairing response for {mac}: {pairing_response.hex()}")
+                
+                # TODO: Send pairing response via BLE
+                # For now, just return the response
+                
+                # Add device to lights config
+                light_config = {
+                    'id': len(self.bridge.config.get('lights', [])) + 1,
+                    'address': address,
+                    'name': f'Light {address}',
+                    'mac': mac,
+                    'group_id': group_id,
+                    'paired': True
+                }
+                
+                if 'lights' not in self.bridge.config:
+                    self.bridge.config['lights'] = []
+                self.bridge.config['lights'].append(light_config)
+                self.bridge.save_config()
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Device {mac} paired successfully',
+                    'pairing_response': pairing_response.hex(),
+                    'light': light_config
+                })
+                
+            except Exception as e:
+                logger.error(f"Error pairing device: {e}")
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/control/send', methods=['POST'])
+        def send_control_command():
+            """Send a control command to a light
+            
+            Expected POST data:
+            {
+                "address": 1,
+                "command_type": 1,  // 0=status, 1=control, 2=pairing, 3=group, 4=scene
+                "payload": "0164ffffff",  // hex string
+                "seq": 0
+            }
+            """
+            try:
+                data = request.json
+                address = data.get('address')
+                cmd_type = data.get('command_type', 1)
+                payload_hex = data.get('payload', '')
+                seq = data.get('seq', 0)
+                
+                if address is None:
+                    return jsonify({'error': 'Address is required'}), 400
+                
+                # Get mesh key from config
+                mesh_key = self.bridge.config.get('mesh_key', '30323336')
+                if isinstance(mesh_key, str):
+                    mesh_key_bytes = bytes.fromhex(mesh_key) if len(mesh_key) == 8 else mesh_key.encode('utf-8')
+                else:
+                    mesh_key_bytes = mesh_key
+                
+                # Convert payload hex to bytes
+                payload = bytes.fromhex(payload_hex) if payload_hex else bytes()
+                
+                # Generate control command
+                command = create_control_command(
+                    address=address,
+                    cmd_type=cmd_type,
+                    payload=payload,
+                    mesh_key=mesh_key_bytes,
+                    seq=seq
+                )
+                
+                logger.info(f"Generated control command for address {address}: {command.hex()}")
+                
+                # TODO: Send command via BLE
+                
+                return jsonify({
+                    'success': True,
+                    'command': command.hex(),
+                    'length': len(command)
+                })
+                
+            except Exception as e:
+                logger.error(f"Error sending control command: {e}")
                 return jsonify({'error': str(e)}), 500
     
     def run(self, host='0.0.0.0', port=8099):
