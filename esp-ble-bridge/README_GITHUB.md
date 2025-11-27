@@ -132,7 +132,7 @@ This add-on wouldn't be possible without:
 **[@scross01](https://github.com/scross01)** - Creator and maintainer of [esphome-fastcon](https://github.com/scross01/esphome-fastcon), the ESPHome component that makes BRMesh/Fastcon BLE control possible. **Thank you for making this project a reality!** 🙏
 
 Additional acknowledgments:
-- **[Mooody](https://mooody.me/)** - Original Fastcon BLE protocol reverse engineering
+- **[Mooody](https://mooody.me/)** - Original Fastcon BLE protocol analysis
 - **[ArcadeMachinist](https://github.com/ArcadeMachinist)** - brMeshMQTT implementation reference
 - **[Home Assistant Community](https://community.home-assistant.io/t/brmesh-app-bluetooth-lights/473486)** - Testing, feedback, and support
 

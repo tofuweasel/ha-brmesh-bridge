@@ -1,0 +1,25 @@
+# Files to exclude from public GitHub repo
+# These stay in gitea only
+
+# Internal protocol analysis docs (contain RE references)
+esp-ble-bridge/PROTOCOL_ANALYSIS.md
+esp-ble-bridge/BLE_PAIRING_CAPTURE.md
+
+# Private development files
+esp-ble-bridge/brmesh_bridge.py
+esp-ble-bridge/decrypt_backup.py
+esp-ble-bridge/effects.py
+esp-ble-bridge/pairing_capture.txt
+esp-ble-bridge/app_config.json
+esp-ble-bridge/app_config_base64.txt
+esp-ble-bridge/BLEMeshConfigure.xml
+esp-ble-bridge/BRMESH_BACKUP*.json
+
+# Build/test files
+esphome-build/
+
+# Standalone version (not needed for addon)
+standalone/
+
+# Personal docs directory
+docs/
