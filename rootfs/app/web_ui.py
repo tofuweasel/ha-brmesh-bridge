@@ -1745,5 +1745,7 @@ Option 3: Add to Home Assistant
                 return jsonify({'error': str(e)}), 500
     
     def run(self, host='0.0.0.0', port=8099):
-        """Run the web UI"""
-        app.run(host=host, port=port, debug=False)
+        """Run the web UI with production WSGI server"""
+        from waitress import serve
+        logger.info(f"🚀 Starting Waitress WSGI server on {host}:{port}")
+        serve(app, host=host, port=port, threads=4, channel_timeout=300)

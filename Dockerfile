@@ -61,6 +61,7 @@ RUN pip3 install --break-system-packages --no-cache-dir \
     "bleak>=0.22.0,<1.0.0" \
     "flask>=3.0.0,<4.0.0" \
     "flask-cors>=5.0.0,<6.0.0" \
+    "waitress>=3.0.0,<4.0.0" \
     "pillow>=10.0.0,<12.0.0" \
     "numpy>=2.0.0,<3.0.0" \
     "ruamel.yaml>=0.17.0,<1.0.0"
