@@ -610,7 +610,16 @@ async function checkESPHomeStatus(controllerId, controllerName) {
         // Update online badge
         const onlineBadge = document.getElementById(`online-${controllerId}`);
         if (onlineBadge) {
-            onlineBadge.innerHTML = data.online ? '🟢 ONLINE' : '🔴 Offline';
+            let badgeHTML = data.online ? '🟢 ONLINE' : '🔴 Offline';
+            
+            // Add version warning if needed
+            if (data.needs_update && data.firmware_version) {
+                badgeHTML += ` <span style="color: #f39c12;" title="Firmware v${data.firmware_version} (expected v${data.expected_version})">⚠️ Update Available</span>`;
+            } else if (data.firmware_version) {
+                badgeHTML += ` <span style="color: #27ae60;" title="Running v${data.firmware_version}">v${data.firmware_version}</span>`;
+            }
+            
+            onlineBadge.innerHTML = badgeHTML;
         }
         
         // Show/hide visit button based on online status
@@ -991,6 +1000,13 @@ async function saveController() {
     };
     
     try {
+        // Disable button to prevent double-submission
+        const submitBtn = event?.target || document.querySelector('.modal .btn-primary');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Adding...';
+        }
+        
         const response = await fetch('api/controllers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -999,15 +1015,25 @@ async function saveController() {
         
         if (response.ok) {
             showNotification('Controller added successfully!', 'success');
-            document.querySelector('.modal').remove();
+            // Remove all modals to prevent duplicates
+            document.querySelectorAll('.modal').forEach(m => m.remove());
             await loadControllers();
         } else {
             const error = await response.json();
             showNotification('Failed to add controller: ' + (error.error || 'Unknown error'), 'error');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 Add Controller';
+            }
         }
     } catch (error) {
         console.error('Failed to add controller:', error);
         showNotification('Failed to add controller: ' + error.message, 'error');
+        const submitBtn = event?.target || document.querySelector('.modal .btn-primary');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '💾 Add Controller';
+        }
     }
 }
 
@@ -1052,6 +1078,13 @@ async function generateESPHomeController() {
     };
     
     try {
+        // Disable button to prevent double-submission
+        const submitBtn = event?.target || document.querySelector('.modal .btn-success');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Creating...';
+        }
+        
         showNotification('📝 Creating controller and generating configuration...', 'info');
         
         const response = await fetch('api/controllers', {
@@ -1063,7 +1096,8 @@ async function generateESPHomeController() {
         if (response.ok) {
             const result = await response.json();
             showNotification(`✅ Controller "${result.name}" created and config generated!`, 'success');
-            document.querySelector('.modal').remove();
+            // Remove all modals to prevent duplicates
+            document.querySelectorAll('.modal').forEach(m => m.remove());
             await loadControllers();
             
             // Show build instructions

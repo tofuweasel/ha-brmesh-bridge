@@ -55,10 +55,17 @@ class ESPHomeConfigGenerator:
             # Use mDNS hostname by default
             wifi_config['use_address'] = f'{controller_name}.local'
         
+        # Bridge firmware version (independent of addon version)
+        BRIDGE_FIRMWARE_VERSION = "1.0.0"
+        
         config = {
+            'substitutions': {
+                'bridge_version': BRIDGE_FIRMWARE_VERSION
+            },
             'esphome': {
                 'name': controller_name,
-                'friendly_name': controller['name']
+                'friendly_name': controller['name'],
+                'comment': f'ESP BLE Bridge v{BRIDGE_FIRMWARE_VERSION}'
             },
             'esp32': {
                 'board': 'esp32dev',
@@ -84,8 +91,15 @@ class ESPHomeConfigGenerator:
                 'disabled': False
             },
             'web_server': {
-                'port': 80
-            }
+                'port': 80,
+                'version': 2,
+                'local': True
+            },
+            'globals': [{
+                'id': 'bridge_firmware_version',
+                'type': 'std::string',
+                'initial_value': f'"{BRIDGE_FIRMWARE_VERSION}"'
+            }]
         }
         
         # Use optimized fork with command deduplication if enabled
@@ -256,6 +270,13 @@ if (!mfg_datas.empty()) {
             {
                 'platform': 'version',
                 'name': 'ESPHome Version'
+            },
+            {
+                'platform': 'template',
+                'name': 'Bridge Firmware Version',
+                'id': 'bridge_firmware_version',
+                'icon': 'mdi:tag',
+                'lambda': f'return {{\"{BRIDGE_FIRMWARE_VERSION}\"}};'
             }
         ]
         

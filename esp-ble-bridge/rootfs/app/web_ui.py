@@ -558,14 +558,16 @@ class WebUI:
         
         @app.route('/api/esphome/status/<controller_name>')
         def get_esphome_status(controller_name):
-            """Get ESPHome device status from Home Assistant"""
+            """Get ESPHome device status and firmware version"""
             try:
                 import socket
+                import requests
                 
                 # Try to resolve mDNS hostname
                 hostname = f"{controller_name}.local"
                 ip = None
                 online = False
+                firmware_version = None
                 
                 try:
                     ip = socket.gethostbyname(hostname)
@@ -575,14 +577,45 @@ class WebUI:
                     result = sock.connect_ex((ip, 80))
                     sock.close()
                     online = (result == 0)
+                    
+                    # Try to fetch firmware version from ESPHome web server
+                    if online:
+                        try:
+                            # ESPHome web server exposes info at /text_sensor/bridge_firmware_version
+                            # or we can check the main page for version info
+                            resp = requests.get(f'http://{ip}/', timeout=3)
+                            if resp.ok:
+                                # Try to extract version from HTML comment or global var
+                                import re
+                                match = re.search(r'ESP BLE Bridge v([\d.]+)', resp.text)
+                                if match:
+                                    firmware_version = match.group(1)
+                        except:
+                            pass
                 except:
                     pass
+                
+                # Get expected firmware version from generator
+                expected_version = "1.0.0"  # Default
+                if self.bridge.esphome_generator:
+                    try:
+                        # Extract version from generator constant
+                        import inspect
+                        source = inspect.getsource(self.bridge.esphome_generator.generate_controller_config)
+                        match = re.search(r'BRIDGE_FIRMWARE_VERSION = "([\d.]+)"', source)
+                        if match:
+                            expected_version = match.group(1)
+                    except:
+                        pass
                 
                 return jsonify({
                     'name': controller_name,
                     'hostname': hostname,
                     'ip': ip,
-                    'online': online
+                    'online': online,
+                    'firmware_version': firmware_version,
+                    'expected_version': expected_version,
+                    'needs_update': firmware_version is not None and firmware_version != expected_version
                 })
             except Exception as e:
                 logger.error(f"Failed to get ESPHome status: {e}")
