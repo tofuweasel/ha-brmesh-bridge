@@ -1452,12 +1452,6 @@ async function loadSettings() {
         // Core settings
         document.getElementById('mesh-key').value = settings.mesh_key || '';
         
-        // Sync mesh key to pairing tab
-        const pairingMeshKey = document.getElementById('pairing-mesh-key');
-        if (pairingMeshKey && settings.mesh_key) {
-            pairingMeshKey.value = settings.mesh_key;
-        }
-        
         // MQTT settings
         document.getElementById('use-addon-mqtt').checked = settings.use_addon_mqtt !== false;
         toggleMQTTSection();
@@ -2483,7 +2477,7 @@ async function pairDevice(mac, deviceIndex) {
     const status = document.getElementById('pairing-status');
     const address = parseInt(document.getElementById('pairing-address').value);
     const groupId = parseInt(document.getElementById('pairing-group').value);
-    const meshKey = document.getElementById('pairing-mesh-key').value;
+    const meshKey = document.getElementById('mesh-key').value;
     
     status.style.display = 'block';
     status.className = 'status-message info';

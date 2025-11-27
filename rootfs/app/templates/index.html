@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP BLE Bridge - Light Management</title>
-    <link rel="stylesheet" href="static/css/style.css?v=0.30.2">
+    <link rel="stylesheet" href="static/css/style.css?v=0.30.3">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -13,7 +13,7 @@
         <header>
             <div class="header-title">
                 <h1>🔆 ESP BLE Bridge</h1>
-                <span class="version">v0.30.2 (Bridge FW: 1.0.0)</span>
+                <span class="version">v0.30.3 (Bridge FW: 1.0.0)</span>
             </div>
             <div class="header-controls">
                 <button id="dark-mode-toggle" class="btn btn-secondary" title="Toggle Dark Mode">🌙</button>
@@ -109,11 +109,6 @@
                         <label for="pairing-group">Group ID:</label>
                         <input type="number" id="pairing-group" min="1" max="255" value="1" />
                         <small>Group for controlling multiple lights together</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="pairing-mesh-key">Mesh Key:</label>
-                        <input type="text" id="pairing-mesh-key" value="30323336" pattern="[0-9a-fA-F]{8}" />
-                        <small>8-character hex key (default: 30323336 = "0236")</small>
                     </div>
                 </div>
                 
@@ -394,7 +389,7 @@
         </div>
     </div>
 
-    <script src="static/js/app.js?v=0.30.2"></script>
+    <script src="static/js/app.js?v=0.30.3"></script>
     <script>
     function toggleMapSettings() {
         const mapEnabled = document.getElementById('map-enabled').checked;
