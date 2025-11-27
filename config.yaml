@@ -1,5 +1,5 @@
 name: ESP BLE Bridge
-version: 0.50.5
+version: 0.50.6
 
 slug: esp-ble-bridge
 description: ESP32 BLE bridge for Fastcon/BRMesh lights with native mesh-based pairing, automatic device detection, and complete protocol support
