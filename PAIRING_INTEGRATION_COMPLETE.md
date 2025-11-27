@@ -119,7 +119,7 @@ sendTestCommand(type)       // Send on/off/brightness commands
 ### 2. Factory Reset a Light
 - Turn light on/off 5 times quickly
 - Light should flash rapidly (pairing mode)
-- MAC: 54:C4:B2:61:BB:D7 (your test device)
+- MAC: AA:BB:CC:DD:EE:FF (example test device)
 
 ### 3. Scan and Pair
 - Click "Scan for Devices"
@@ -249,4 +249,4 @@ You can now:
 - Prove it works without Android app
 - Offer "official partner" integration
 
-**Next:** Test with your device (54:C4:B2:61:BB:D7) to verify everything works end-to-end!
+**Next:** Test with your device to verify everything works end-to-end!

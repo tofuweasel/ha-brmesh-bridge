@@ -98,7 +98,7 @@ def create_pairing_response(device_mac: str, address: int, group_id: int,
     High-level function to create pairing response based on device parameters.
     
     Args:
-        device_mac: Device MAC address as hex string (e.g., "54:C4:B2:61:BB:D7")
+        device_mac: Device MAC address as hex string (e.g., "AA:BB:CC:DD:EE:FF")
         address: Device address to assign (1-65535)
         group_id: Group ID (0-255)
         mesh_key: Mesh key as hex string (e.g., "30323336")
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Test case 1: Standard pairing (address <= 256)
-    device_mac = "54:C4:B2:61:BB:D7"
+    device_mac = "AA:BB:CC:DD:EE:FF"
     address = 1
     mesh_key = "30323336"  # "0236" in ASCII
     

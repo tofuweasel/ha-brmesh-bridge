@@ -1479,7 +1479,7 @@ class WebUI:
                 # For now, return mock data
                 unpaired_devices = [
                     {
-                        'mac': '54:C4:B2:61:BB:D7',
+                        'mac': 'AA:BB:CC:DD:EE:FF',
                         'rssi': -65,
                         'name': 'BRMesh Light',
                         'manufacturer': 'Broadlink'
@@ -1496,7 +1496,7 @@ class WebUI:
             
             Expected POST data:
             {
-                "mac": "54:C4:B2:61:BB:D7",
+                "mac": "AA:BB:CC:DD:EE:FF",
                 "address": 1,
                 "group_id": 1,
                 "mesh_key": "30323336"
