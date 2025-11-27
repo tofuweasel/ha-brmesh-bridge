@@ -110,14 +110,30 @@ class BRMeshDiscovery:
                     mfr_match = re.search(r'Manufacturer UUID:\s+0x([0-9a-fA-F]+)', line)
                     if mfr_match:
                         mfr_id = int(mfr_match.group(1), 16)
-                        if mfr_id == 0xf0ff:  # BRMesh manufacturer ID
+                        # BRMesh uses 0xfff0 (big-endian) = bytes [0xf0, 0xff]
+                        if mfr_id == 0xfff0:  # Corrected BRMesh manufacturer ID
                             # Check if we already have this device
                             if not any(d['mac_address'] == current_device['mac_address'] for d in discovered):
                                 current_device['name'] = f"BRMesh Light {current_device['mac_address'][-5:]}"
                                 current_device['device_id'] = len(discovered) + 1  # Temporary ID
+                                current_device['pairing_mode'] = False  # Will detect from data length
                                 discovered.append(current_device)
                                 logger.info(f"Found BRMesh device: {current_device['mac_address']} (RSSI: {current_device['rssi']})")
                         current_device = None
+                
+                # Match manufacturer data line to detect pairing mode
+                # Format: [D][ble_scan:XXX]:   Manufacturer data: 4E.5F.6B.1C... (16 bytes = pairing, 24 bytes = normal)
+                if current_device and 'Manufacturer data:' in line:
+                    data_match = re.search(r'Manufacturer data:\s+([0-9A-F.]+)', line, re.IGNORECASE)
+                    if data_match:
+                        data_hex = data_match.group(1).replace('.', '')
+                        data_len = len(data_hex) // 2  # Convert hex chars to bytes
+                        if data_len == 16:
+                            current_device['pairing_mode'] = True
+                            logger.info(f"Device {current_device['mac_address']} is in PAIRING MODE (16-byte data)")
+                        elif data_len == 24:
+                            current_device['pairing_mode'] = False
+                            logger.debug(f"Device {current_device['mac_address']} is in normal mode (24-byte data)")
             
         except Exception as e:
             logger.error(f"BLE scan error: {e}", exc_info=True)

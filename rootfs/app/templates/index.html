@@ -101,7 +101,14 @@
                 <div class="pairing-settings">
                     <h3>Pairing Settings</h3>
                     <div class="form-group">
-                        <label for="pairing-address">Device Address:</label>
+                        <label>
+                            <input type="checkbox" id="auto-pair-mode" />
+                            Auto-Pair Mode (Experimental)
+                        </label>
+                        <small>Automatically pair discovered devices without confirmation</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="pairing-address">Next Device Address:</label>
                         <input type="number" id="pairing-address" min="1" max="255" value="1" />
                         <small>Unique address for this device (1-255)</small>
                     </div>

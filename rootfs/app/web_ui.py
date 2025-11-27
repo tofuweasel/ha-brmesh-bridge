@@ -1558,15 +1558,17 @@ Option 3: Add to Home Assistant
                         yield send_event('error', {'message': f'BLE scan failed: {str(scan_error)}'})
                         return
                     
-                    # Format for frontend
+                    # Format for frontend - only show devices in pairing mode
                     unpaired_devices = [
                         {
                             'mac': d['mac_address'],
                             'rssi': d['rssi'],
                             'name': d['name'],
-                            'manufacturer': 'BRMesh'
+                            'manufacturer': 'BRMesh',
+                            'pairing_mode': d.get('pairing_mode', False)
                         }
                         for d in devices
+                        if d.get('pairing_mode', False)  # Only show devices in pairing mode (16-byte ads)
                     ]
                     
                     logger.info(f"Found {len(unpaired_devices)} unpaired devices: {[d['mac'] for d in unpaired_devices]}")

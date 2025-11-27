@@ -2486,8 +2486,9 @@ async function scanForPairingDevices() {
             // Render devices list
             let html = '';
             data.devices.forEach((device, index) => {
+                const deviceId = `device-${index}`;
                 html += `
-                    <div class="device-card">
+                    <div class="device-card" id="${deviceId}" data-mac="${device.mac}">
                         <div class="device-info">
                             <strong>${device.name || 'BRMesh Light'}</strong>
                             <div class="device-details">
@@ -2496,13 +2497,26 @@ async function scanForPairingDevices() {
                                 ${device.manufacturer ? `<span>🏷️ ${device.manufacturer}</span>` : ''}
                             </div>
                         </div>
-                        <button class="btn btn-primary" onclick="pairDevice('${device.mac}', ${index})">
-                            🔗 Pair
-                        </button>
+                        <div class="device-actions">
+                            <button class="btn btn-secondary" onclick="ignoreDevice('${device.mac}', '${deviceId}')" title="Hide this device">
+                                ⛔ Ignore
+                            </button>
+                            <button class="btn btn-success" onclick="pairDevice('${device.mac}', ${index})">
+                                🔗 Pair
+                            </button>
+                        </div>
                     </div>
                 `;
             });
             devicesList.innerHTML = html;
+            
+            // Check if auto-pair is enabled
+            const autoPairMode = document.getElementById('auto-pair-mode').checked;
+            if (autoPairMode && data.devices.length > 0) {
+                status.className = 'status-message info';
+                status.textContent = '🤖 Auto-pair enabled: Pairing devices automatically...';
+                autoPairDevices(data.devices);
+            }
         }
         
         btn.disabled = false;
@@ -2592,6 +2606,53 @@ async function pairDevice(mac, deviceIndex) {
         status.className = 'status-message error';
         status.textContent = '❌ Error pairing device: ' + error.message;
     }
+}
+
+function ignoreDevice(mac, deviceId) {
+    const deviceCard = document.getElementById(deviceId);
+    if (deviceCard) {
+        deviceCard.style.opacity = '0.3';
+        deviceCard.style.pointerEvents = 'none';
+        
+        // Add ignored badge
+        const deviceInfo = deviceCard.querySelector('.device-info');
+        const badge = document.createElement('span');
+        badge.className = 'device-badge ignored';
+        badge.textContent = '🚫 Ignored';
+        badge.style.color = '#999';
+        badge.style.marginLeft = '10px';
+        deviceInfo.querySelector('strong').appendChild(badge);
+        
+        // Remove from discovered list
+        discoveredDevices = discoveredDevices.filter(d => d.mac !== mac);
+        
+        console.log(`Ignored device: ${mac}`);
+        showNotification(`Device ${mac} ignored`, 'info');
+    }
+}
+
+async function autoPairDevices(devices) {
+    const status = document.getElementById('pairing-status');
+    
+    for (let i = 0; i < devices.length; i++) {
+        const device = devices[i];
+        status.className = 'status-message info';
+        status.textContent = `🤖 Auto-pairing device ${i + 1}/${devices.length}: ${device.mac}...`;
+        
+        try {
+            await pairDevice(device.mac, i);
+            // Wait 2 seconds between pairings
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (error) {
+            console.error(`Auto-pair failed for ${device.mac}:`, error);
+            status.className = 'status-message error';
+            status.textContent = `❌ Auto-pair failed for ${device.mac}: ${error.message}`;
+            // Continue to next device
+        }
+    }
+    
+    status.className = 'status-message success';
+    status.textContent = `✅ Auto-pairing complete! Paired ${devices.length} device(s)`;
 }
 
 async function sendTestCommand(commandType) {

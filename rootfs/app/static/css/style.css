@@ -1008,6 +1008,7 @@ body.dark-mode .log-viewer {
     justify-content: space-between;
     align-items: center;
     transition: all 0.3s ease;
+    margin-bottom: 15px;
 }
 
 .device-card:hover {
@@ -1017,6 +1018,28 @@ body.dark-mode .log-viewer {
 
 .device-info {
     flex: 1;
+}
+
+.device-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.device-actions button {
+    min-width: 100px;
+}
+
+.device-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.device-badge.ignored {
+    background: #f0f0f0;
+    color: #999;
 }
 
 .device-info strong {

@@ -1,5 +1,6 @@
 name: ESP BLE Bridge
-version: 0.30.19
+version: 0.30.20
+
 slug: esp-ble-bridge
 description: ESP32 BLE bridge for Fastcon/BRMesh lights with native pairing (no Android app needed), optimized commands, and multi-protocol support
 url: https://github.com/tofuweasel/ha-esp-ble-bridge
