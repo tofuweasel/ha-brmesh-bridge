@@ -22,6 +22,10 @@ logger:
   level: INFO
   # Use DEBUG for troubleshooting:
   # level: DEBUG
+  logs:
+    # Filter out non-BRMesh BLE spam in INFO mode
+    ble_scan: WARN  # Only show BRMesh devices, hide random BLE traffic
+    esp32_ble_tracker: INFO
 
 # Native API for Home Assistant auto-discovery
 api:
@@ -75,7 +79,8 @@ esp32_ble_tracker:
     - manufacturer_id: 0xf0ff  # BRMesh manufacturer ID
       then:
         - lambda: |-
-            ESP_LOGI("ble", "BRMesh device detected: %s (RSSI: %d)", 
+            // Log BRMesh devices at INFO level (visible even when ble_scan is WARN)
+            ESP_LOGI("brmesh", "BRMesh device detected: %s (RSSI: %d dBm)", 
                      x.address_str().c_str(), x.get_rssi());
             
             // TODO: Parse pairing data and auto-assign light IDs
@@ -88,7 +93,7 @@ esp32_ble_tracker:
               sprintf(buf, "%02x", byte);
               hex += buf;
             }
-            ESP_LOGD("pairing", "Manufacturer data: %s", hex.c_str());
+            ESP_LOGI("brmesh", "  Manufacturer data: %s", hex.c_str());
 
 # Required for BLE
 esp32_ble_server:

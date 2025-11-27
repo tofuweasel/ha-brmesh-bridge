@@ -23,6 +23,10 @@ esp32:
 
 logger:
   level: INFO
+  logs:
+    # Filter out non-BRMesh BLE spam in INFO mode
+    ble_scan: WARN
+    bluetooth_proxy: INFO
 
 # Native API for Home Assistant
 api:
