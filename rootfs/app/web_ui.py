@@ -1522,7 +1522,7 @@ class WebUI:
                                 'message': f'Scanning... ({int(elapsed)}/{scan_duration}s)',
                                 'progress': progress
                             })
-                            await asyncio.sleep(1)
+                            time.sleep(1)
                         
                         devices = scan_task.result()
                         loop.close()
