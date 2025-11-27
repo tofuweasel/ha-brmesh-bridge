@@ -849,7 +849,7 @@ async function createController() {
             </div>
             
             <div class="modal-buttons">
-                <button class="btn btn-success" onclick="saveController()">📝 Generate ESPHome Config</button>
+                <button class="btn btn-success" onclick="saveController(this)">📝 Generate ESPHome Config</button>
                 <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
             </div>
         </div>
@@ -924,7 +924,7 @@ async function addExistingController() {
             </div>
             
             <div class="modal-buttons">
-                <button class="btn btn-primary" onclick="saveController()">💾 Add Controller</button>
+                <button class="btn btn-primary" onclick="saveController(this)">💾 Add Controller</button>
                 <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
             </div>
         </div>
@@ -951,14 +951,14 @@ function toggleManualInputs() {
     }
 }
 
-async function saveController() {
+async function saveController(buttonElement) {
     // Check which modal type is open by looking for specific fields
     const networkSelector = document.getElementById('wifi-network-selector');
     const ipField = document.getElementById('controller-ip');
     
     // If network selector exists, this is "Generate ESPHome Config" modal
     if (networkSelector) {
-        return await generateESPHomeController();
+        return await generateESPHomeController(buttonElement);
     }
     
     // Otherwise, this is "Add Existing Controller" modal
@@ -1002,10 +1002,9 @@ async function saveController() {
     
     try {
         // Disable button to prevent double-submission
-        const submitBtn = event?.target || document.querySelector('.modal .btn-primary');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Adding...';
+        if (buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.textContent = '⏳ Adding...';
         }
         
         const response = await fetch('api/controllers', {
@@ -1022,23 +1021,22 @@ async function saveController() {
         } else {
             const error = await response.json();
             showNotification('Failed to add controller: ' + (error.error || 'Unknown error'), 'error');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '💾 Add Controller';
+            if (buttonElement) {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '💾 Add Controller';
             }
         }
     } catch (error) {
         console.error('Failed to add controller:', error);
         showNotification('Failed to add controller: ' + error.message, 'error');
-        const submitBtn = event?.target || document.querySelector('.modal .btn-primary');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = '💾 Add Controller';
+        if (buttonElement) {
+            buttonElement.disabled = false;
+            buttonElement.textContent = '💾 Add Controller';
         }
     }
 }
 
-async function generateESPHomeController() {
+async function generateESPHomeController(buttonElement) {
     const networkSelector = document.getElementById('wifi-network-selector');
     const selectedNetwork = networkSelector.value;
     const name = document.getElementById('controller-name').value.trim();
@@ -1080,10 +1078,9 @@ async function generateESPHomeController() {
     
     try {
         // Disable button to prevent double-submission
-        const submitBtn = event?.target || document.querySelector('.modal .btn-success');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Creating...';
+        if (buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.textContent = '⏳ Creating...';
         }
         
         showNotification('📝 Creating controller and generating configuration...', 'info');
