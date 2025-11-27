@@ -2330,13 +2330,30 @@ async function fetchLogs() {
     if (!currentLogController) return;
     
     try {
-        // Fetch from ESPHome logs API (we'll need to add this endpoint)
         const response = await fetch(`api/esphome/logs/${currentLogController}`);
-        if (!response.ok) return;
+        if (!response.ok) {
+            const logViewer = document.getElementById('log-viewer');
+            if (logViewer && response.status === 404) {
+                logViewer.textContent = 'Controller offline or not found';
+            }
+            return;
+        }
         
         const data = await response.json();
+        
+        // Handle raw text logs from ESPHome
+        if (data.raw && typeof data.logs === 'string') {
+            const logViewer = document.getElementById('log-viewer');
+            if (logViewer) {
+                logViewer.textContent = data.logs;
+                // Auto-scroll to bottom
+                logViewer.scrollTop = logViewer.scrollHeight;
+            }
+            return;
+        }
+        
+        // Handle parsed log entries (legacy format)
         if (data.logs && Array.isArray(data.logs)) {
-            // Append new logs
             allLogEntries.push(...data.logs);
             
             // Keep only last 500 entries
@@ -2348,6 +2365,10 @@ async function fetchLogs() {
         }
     } catch (error) {
         console.error('Failed to fetch logs:', error);
+        const logViewer = document.getElementById('log-viewer');
+        if (logViewer) {
+            logViewer.textContent = `Error: ${error.message}`;
+        }
     }
 }
 

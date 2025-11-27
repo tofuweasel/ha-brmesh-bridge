@@ -629,8 +629,6 @@ class WebUI:
             try:
                 import socket
                 import requests
-                import re
-                from datetime import datetime
                 
                 # Try to resolve mDNS hostname
                 hostname = f"{controller_name}.local"
@@ -639,31 +637,32 @@ class WebUI:
                 except:
                     return jsonify({'error': 'Controller offline or not found'}), 404
                 
-                # Fetch logs from ESPHome web server
-                # ESPHome doesn't have a JSON API for logs, so we'll parse the log page
+                # Fetch logs from ESPHome web server (text format)
                 try:
-                    resp = requests.get(f'http://{ip}/logs', timeout=3)
+                    resp = requests.get(f'http://{ip}/logs', timeout=5, stream=True)
                     if not resp.ok:
                         return jsonify({'error': 'Failed to fetch logs'}), 500
                     
-                    # Parse log entries from HTML
-                    # Format: [HH:MM:SS][LEVEL][TAG]: message
-                    log_pattern = r'\[(\d{2}:\d{2}:\d{2})\]\[([EWDIV])\]\[([^\]]+)\]:\s*(.*?)(?=\[|$)'
-                    matches = re.findall(log_pattern, resp.text, re.MULTILINE | re.DOTALL)
+                    # Read the log stream (ESPHome returns text/event-stream)
+                    # We'll collect the first chunk of logs
+                    logs_text = ""
+                    for chunk in resp.iter_content(chunk_size=8192, decode_unicode=True):
+                        if chunk:
+                            logs_text += chunk
+                            if len(logs_text) > 50000:  # Limit to ~50KB
+                                break
                     
-                    logs = []
-                    for timestamp, level, tag, message in matches[-100:]:  # Last 100 entries
-                        logs.append({
-                            'timestamp': timestamp.strip(),
-                            'level': level.strip(),
-                            'tag': tag.strip(),
-                            'message': message.strip()
-                        })
+                    # Return raw text logs (frontend will display as-is)
+                    return jsonify({
+                        'logs': logs_text,
+                        'raw': True  # Tell frontend this is raw text
+                    })
                     
-                    return jsonify({'logs': logs})
+                except requests.exceptions.Timeout:
+                    return jsonify({'error': 'Request timed out - controller may be busy'}), 504
                 except Exception as e:
-                    logger.error(f"Failed to parse logs: {e}")
-                    return jsonify({'error': f'Failed to parse logs: {str(e)}'}), 500
+                    logger.error(f"Failed to fetch logs: {e}")
+                    return jsonify({'error': f'Failed to fetch logs: {str(e)}'}), 500
                     
             except Exception as e:
                 logger.error(f"Failed to get ESPHome logs: {e}")
