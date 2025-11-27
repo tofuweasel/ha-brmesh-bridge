@@ -97,7 +97,7 @@ fastcon:
 
 To update from upstream:
 ```bash
-cd C:\Profiles\crval\Nextcloud\Projects\esphome-fastcon\esphome-fastcon
+cd /path/to/esphome-fastcon
 git remote add upstream https://github.com/scross01/esphome-fastcon.git
 git fetch upstream
 git merge upstream/main
