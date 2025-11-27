@@ -94,12 +94,7 @@ class ESPHomeConfigGenerator:
                 'port': 80,
                 'version': 2,
                 'local': True
-            },
-            'globals': [{
-                'id': 'bridge_firmware_version',
-                'type': 'std::string',
-                'initial_value': f'"{BRIDGE_FIRMWARE_VERSION}"'
-            }]
+            }
         }
         
         # Use optimized fork with command deduplication if enabled
