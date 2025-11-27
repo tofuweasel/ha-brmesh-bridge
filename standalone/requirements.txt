@@ -1,9 +1,0 @@
-paho-mqtt>=2.0.0
-bleak>=0.22.0
-pyyaml>=6.0.0
-flask>=3.0.0
-flask-cors>=5.0.0
-requests>=2.32.0
-pillow>=10.0.0
-numpy>=2.0.0
-esphome>=2024.0.0

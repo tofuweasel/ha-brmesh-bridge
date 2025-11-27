@@ -59,3 +59,21 @@ __pycache__
 tmp/
 temp/
 *.temp
+
+# Internal development files (gitea only)
+PROTOCOL_ANALYSIS.md
+BLE_PAIRING_CAPTURE.md
+brmesh_bridge.py
+decrypt_backup.py
+effects.py
+pairing_capture.txt
+app_config.json
+app_config_base64.txt
+BLEMeshConfigure.xml
+BRMESH_BACKUP*.json
+PAIRING_INTEGRATION_COMPLETE.md
+
+# Build/test directories (gitea only)
+esphome-build/
+standalone/
+docs/
