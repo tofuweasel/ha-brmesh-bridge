@@ -14,8 +14,8 @@ CONFIG_SCHEMA = cv.Schema({
 }).extend(cv.COMPONENT_SCHEMA)
 
 async def to_code(config):
-    cg.add_library("arduinoFFT", "^1.9")
-    cg.add(cg.RawExpression('#include "music_reactive.h"'))
+    cg.add_library("https://github.com/kosme/arduinoFFT.git#v1.6.1", None)
+    cg.add_global(cg.RawExpression('#include "esphome/components/music_reactive/music_reactive.h" //'))
     
     var = cg.new_Pvariable(config[CONF_ID], True) # True for master mode
     await cg.register_component(var, config)

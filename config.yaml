@@ -1,5 +1,5 @@
 name: ESP BLE Bridge
-version: 0.50.7
+version: 0.50.8
 
 slug: esp-ble-bridge
 description: ESP32 BLE bridge for Fastcon/BRMesh lights with native mesh-based pairing, automatic device detection, and complete protocol support
@@ -25,5 +25,7 @@ ingress: true
 ingress_port: 8099
 panel_icon: mdi:lightbulb-group
 webui: http://[HOST]:[PORT:8099]
-options: {}
-schema: {}
+options:
+  wifi_domain: ""
+schema:
+  wifi_domain: str?

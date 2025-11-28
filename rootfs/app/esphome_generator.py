@@ -47,6 +47,10 @@ class ESPHomeConfigGenerator:
                 'password': 'brmesh123'
             }
         }
+
+        # Add domain if configured
+        if self.bridge.config.get('wifi_domain'):
+            wifi_config['domain'] = '!secret wifi_domain'
         
         # Only add static IP if explicitly provided
         if controller.get('ip_address'):
@@ -517,6 +521,12 @@ if (!mfg_datas.empty()) {
                 if 'mesh_key' not in secrets and self.bridge.config.get('mesh_key'):
                     logger.info(f"🔑 Adding mesh_key to secrets")
                     keys_to_update['mesh_key'] = PlainScalarString(self.bridge.config.get('mesh_key'))
+                    updated = True
+
+                # Check wifi_domain
+                if 'wifi_domain' not in secrets and self.bridge.config.get('wifi_domain'):
+                    logger.info(f"🔑 Adding wifi_domain to secrets")
+                    keys_to_update['wifi_domain'] = PlainScalarString(self.bridge.config.get('wifi_domain'))
                     updated = True
                 
                 if updated:
