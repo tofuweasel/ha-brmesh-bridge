@@ -1,13 +1,8 @@
-/*
- * FFT Audio Analyzer with UDP Sound Sync
- * Master: Captures audio, performs FFT, broadcasts over UDP
- * Slave: Receives FFT data over UDP, no microphone needed
- * 
- * Compatible with WLED sound sync protocol (port 11988)
- */
+#pragma once
 
 #include "esphome.h"
 #include "arduinoFFT.h"
+#include <WiFi.h>
 #include <WiFiUdp.h>
 #include <driver/i2s.h>
 #include "esphome/components/fastcon/fastcon_controller.h"
@@ -27,7 +22,7 @@ struct AudioSyncPacket {
   uint8_t fft_bins[18];     // Simplified FFT spectrum (18 bins)
 };
 
-class MusicReactiveEffectUDP : public Component, public Sensor {
+class MusicReactiveEffectUDP : public esphome::Component {
  private:
   bool is_master;           // True = mic + broadcast, False = receive only
   bool running = false;
@@ -36,6 +31,7 @@ class MusicReactiveEffectUDP : public Component, public Sensor {
   WiFiUDP udp;
   IPAddress broadcast_ip;
   String master_ip = "";
+  bool udp_initialized = false;
   
   // FFT data (master only)
   arduinoFFT FFT = arduinoFFT();
@@ -61,9 +57,9 @@ class MusicReactiveEffectUDP : public Component, public Sensor {
   unsigned long last_update = 0;
   
   // Sensors
-  Sensor *bass_sensor = new Sensor();
-  Sensor *mid_sensor = new Sensor();
-  Sensor *treble_sensor = new Sensor();
+  esphome::sensor::Sensor *bass_sensor = new esphome::sensor::Sensor();
+  esphome::sensor::Sensor *mid_sensor = new esphome::sensor::Sensor();
+  esphome::sensor::Sensor *treble_sensor = new esphome::sensor::Sensor();
   
   esphome::fastcon::FastconController *controller = nullptr;
 
@@ -96,25 +92,33 @@ class MusicReactiveEffectUDP : public Component, public Sensor {
     } else {
       ESP_LOGI("music-udp", "Slave mode: Waiting for UDP packets");
     }
-    
-    // Start UDP
-    udp.begin(UDP_PORT);
-    
-    // Calculate broadcast address
-    IPAddress local_ip = WiFi.localIP();
-    IPAddress subnet = WiFi.subnetMask();
-    broadcast_ip = IPAddress(
-      local_ip[0] | (~subnet[0]),
-      local_ip[1] | (~subnet[1]),
-      local_ip[2] | (~subnet[2]),
-      local_ip[3] | (~subnet[3])
-    );
-    
-    ESP_LOGI("music-udp", "UDP initialized on port %d, broadcast: %s", 
-             UDP_PORT, broadcast_ip.toString().c_str());
   }
   
   void loop() override {
+    if (WiFi.status() != WL_CONNECTED) {
+      udp_initialized = false;
+      return;
+    }
+
+    if (!udp_initialized) {
+      // Start UDP
+      udp.begin(UDP_PORT);
+      
+      // Calculate broadcast address
+      IPAddress local_ip = WiFi.localIP();
+      IPAddress subnet = WiFi.subnetMask();
+      broadcast_ip = IPAddress(
+        local_ip[0] | (~subnet[0]),
+        local_ip[1] | (~subnet[1]),
+        local_ip[2] | (~subnet[2]),
+        local_ip[3] | (~subnet[3])
+      );
+      
+      ESP_LOGI("music-udp", "UDP initialized on port %d, broadcast: %s", 
+               UDP_PORT, broadcast_ip.toString().c_str());
+      udp_initialized = true;
+    }
+
     if (!running) return;
     
     if (is_master) {
@@ -391,7 +395,7 @@ class MusicReactiveEffectUDP : public Component, public Sensor {
     return packet_count;
   }
   
-  Sensor *get_bass_sensor() { return bass_sensor; }
-  Sensor *get_mid_sensor() { return mid_sensor; }
-  Sensor *get_treble_sensor() { return treble_sensor; }
+  esphome::sensor::Sensor *get_bass_sensor() { return bass_sensor; }
+  esphome::sensor::Sensor *get_mid_sensor() { return mid_sensor; }
+  esphome::sensor::Sensor *get_treble_sensor() { return treble_sensor; }
 };
