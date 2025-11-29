@@ -1550,6 +1550,44 @@ Option 3: Add to Home Assistant
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
         
+        @app.route('/api/pairing/ignore', methods=['POST'])
+        def ignore_device():
+            """Add a device to the ignored list"""
+            try:
+                data = request.json
+                mac = data.get('mac')
+                if not mac:
+                    return jsonify({'error': 'MAC address required'}), 400
+                
+                if 'ignored_devices' not in self.bridge.config:
+                    self.bridge.config['ignored_devices'] = []
+                
+                if mac not in self.bridge.config['ignored_devices']:
+                    self.bridge.config['ignored_devices'].append(mac)
+                    self.bridge.save_config()
+                
+                return jsonify({'success': True, 'ignored_devices': self.bridge.config['ignored_devices']})
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+
+        @app.route('/api/pairing/ignore', methods=['DELETE'])
+        def unignore_device():
+            """Remove a device from the ignored list"""
+            try:
+                data = request.json
+                mac = data.get('mac')
+                if not mac:
+                    return jsonify({'error': 'MAC address required'}), 400
+                
+                if 'ignored_devices' in self.bridge.config:
+                    if mac in self.bridge.config['ignored_devices']:
+                        self.bridge.config['ignored_devices'].remove(mac)
+                        self.bridge.save_config()
+                
+                return jsonify({'success': True, 'ignored_devices': self.bridge.config.get('ignored_devices', [])})
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+
         @app.route('/api/pairing/discover', methods=['GET'])
         def discover_unpaired_devices():
             """Discover BRMesh devices in pairing mode with progress updates"""
@@ -1614,25 +1652,35 @@ Option 3: Add to Home Assistant
                         yield send_event('error', {'message': f'BLE scan failed: {str(scan_error)}'})
                         return
                     
-                    # Format for frontend - only show devices in pairing mode
-                    unpaired_devices = [
-                        {
+                    # Get ignored devices list
+                    ignored_list = self.bridge.config.get('ignored_devices', [])
+                    
+                    # Format for frontend - return ALL devices but mark status
+                    processed_devices = []
+                    for d in devices:
+                        is_ignored = d['mac_address'] in ignored_list
+                        is_pairable = d.get('pairing_mode', False)
+                        
+                        processed_devices.append({
                             'mac': d['mac_address'],
                             'rssi': d['rssi'],
                             'name': d['name'],
-                            'manufacturer': 'BRMesh',
-                            'pairing_mode': d.get('pairing_mode', False)
-                        }
-                        for d in devices
-                        if d.get('pairing_mode', False)  # Only show devices in pairing mode (16-byte ads)
-                    ]
+                            'manufacturer_id': d.get('manufacturer_id'),
+                            'manufacturer': d.get('manufacturer', 'Unknown'),
+                            'pairing_mode': is_pairable,
+                            'ignored': is_ignored,
+                            'raw_data': d.get('manufacturer_data', {}).get('hex', '')
+                        })
                     
-                    logger.info(f"Found {len(unpaired_devices)} unpaired devices: {[d['mac'] for d in unpaired_devices]}")
+                    # Sort: Pairable first, then by RSSI
+                    processed_devices.sort(key=lambda x: (not x['pairing_mode'], -x['rssi']))
+                    
+                    logger.info(f"Found {len(processed_devices)} devices total")
                     
                     # Send final result
                     yield send_event('complete', {
-                        'devices': unpaired_devices,
-                        'count': len(unpaired_devices),
+                        'devices': processed_devices,
+                        'count': len(processed_devices),
                         'progress': 100
                     })
                     
@@ -1657,17 +1705,20 @@ Option 3: Add to Home Assistant
                     )
                     loop.close()
                     
-                    unpaired_devices = [
-                        {
+                    ignored_list = self.bridge.config.get('ignored_devices', [])
+                    
+                    processed_devices = []
+                    for d in devices:
+                        processed_devices.append({
                             'mac': d['mac_address'],
                             'rssi': d['rssi'],
                             'name': d['name'],
-                            'manufacturer': 'BRMesh'
-                        }
-                        for d in devices
-                    ]
+                            'manufacturer': d.get('manufacturer', 'Unknown'),
+                            'pairing_mode': d.get('pairing_mode', False),
+                            'ignored': d['mac_address'] in ignored_list
+                        })
                     
-                    return jsonify(unpaired_devices)
+                    return jsonify(processed_devices)
                 except Exception as e:
                     logger.error(f"Error: {e}", exc_info=True)
                     return jsonify({'error': str(e)}), 500

@@ -2320,16 +2320,22 @@ async function regenerateYAML(controllerName) {
 async function confirmRegenerateYAML(controllerName) {
     try {
         showNotification(`Regenerating YAML for ${controllerName}...`, 'info');
-        const response = await fetch(`api/settings`, {
+        const response = await fetch(`api/esphome/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}) // Triggers YAML regeneration
+            body: JSON.stringify({ force: true }) // Force regeneration
         });
         
         const result = await response.json();
         
         if (result.success) {
-            showNotification(`✅ YAML regenerated for ${controllerName}`, 'success');
+            // Check result for this specific controller
+            const controllerResult = result.results[controllerName];
+            if (controllerResult && controllerResult.status === 'manual_override') {
+                showNotification(`⚠️ Skipped ${controllerName}: Manual config override active`, 'warning');
+            } else {
+                showNotification(`✅ YAML regenerated for ${controllerName}`, 'success');
+            }
             await loadControllers();
         } else {
             showNotification(`❌ Regeneration failed: ${result.error}`, 'error');
@@ -2626,46 +2632,51 @@ async function scanForPairingDevices() {
         
         if (data.devices.length === 0) {
             status.className = 'status-message warning';
-            status.textContent = '⚠️ No unpaired devices found. Make sure your light is in pairing mode (flashing rapidly).';
+            status.textContent = '⚠️ No devices found.';
             discoveredDiv.style.display = 'none';
         } else {
+            const pairableCount = data.devices.filter(d => d.pairing_mode && !d.ignored).length;
             status.className = 'status-message success';
-            status.textContent = `✅ Found ${data.count} unpaired device(s)`;
+            status.textContent = `✅ Found ${data.count} devices (${pairableCount} pairable)`;
             discoveredDiv.style.display = 'block';
             
             // Render devices list
             let html = '';
-            data.devices.forEach((device, index) => {
-                const deviceId = `device-${index}`;
-                html += `
-                    <div class="device-card" id="${deviceId}" data-mac="${device.mac}">
-                        <div class="device-info">
-                            <strong>${device.name || 'BRMesh Light'}</strong>
-                            <div class="device-details">
-                                <span>📍 MAC: ${device.mac}</span>
-                                <span>📶 RSSI: ${device.rssi} dBm</span>
-                                ${device.manufacturer ? `<span>🏷️ ${device.manufacturer}</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="device-actions">
-                            <button class="btn btn-secondary" onclick="ignoreDevice('${device.mac}', '${deviceId}')" title="Hide this device">
-                                ⛔ Ignore
-                            </button>
-                            <button class="btn btn-success" onclick="pairDevice('${device.mac}', ${index})">
-                                🔗 Pair
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
+            
+            // Filter out ignored devices unless we want to show them (maybe add a toggle later)
+            const visibleDevices = data.devices.filter(d => !d.ignored);
+            
+            if (visibleDevices.length === 0) {
+                html = '<p>No visible devices found (check ignored list).</p>';
+            } else {
+                // Group by pairable status
+                const pairable = visibleDevices.filter(d => d.pairing_mode);
+                const others = visibleDevices.filter(d => !d.pairing_mode);
+                
+                if (pairable.length > 0) {
+                    html += '<h4>✨ Ready to Pair</h4>';
+                    pairable.forEach((device, index) => {
+                        html += renderDeviceCard(device, index, true);
+                    });
+                }
+                
+                if (others.length > 0) {
+                    html += '<h4 style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">Other Devices</h4>';
+                    others.forEach((device, index) => {
+                        html += renderDeviceCard(device, index + pairable.length, false);
+                    });
+                }
+            }
+            
             devicesList.innerHTML = html;
             
-            // Check if auto-pair is enabled
+            // Check if auto-pair is enabled (only for pairable devices)
             const autoPairMode = document.getElementById('auto-pair-mode').checked;
-            if (autoPairMode && data.devices.length > 0) {
+            const pairableDevices = visibleDevices.filter(d => d.pairing_mode);
+            if (autoPairMode && pairableDevices.length > 0) {
                 status.className = 'status-message info';
                 status.textContent = '🤖 Auto-pair enabled: Pairing devices automatically...';
-                autoPairDevices(data.devices);
+                autoPairDevices(pairableDevices);
             }
         }
         
@@ -2707,78 +2718,90 @@ async function scanForPairingDevices() {
     }, 20000);
 }
 
-async function pairDevice(mac, deviceIndex) {
-    const status = document.getElementById('pairing-status');
-    const address = parseInt(document.getElementById('pairing-address').value);
-    const groupId = parseInt(document.getElementById('pairing-group').value);
-    const meshKey = document.getElementById('mesh-key').value;
+function renderDeviceCard(device, index, isPairable) {
+    const deviceId = `device-${device.mac.replace(/:/g, '')}`;
+    const manufacturer = device.manufacturer !== 'Unknown' ? device.manufacturer : 
+                        (device.manufacturer_id ? `ID: 0x${device.manufacturer_id.toString(16)}` : 'Unknown');
     
-    status.style.display = 'block';
-    status.className = 'status-message info';
-    status.textContent = `⏳ Pairing device ${mac}...`;
-    
+    return `
+        <div class="device-card ${isPairable ? 'pairable' : ''}" id="${deviceId}" data-mac="${device.mac}">
+            <div class="device-info">
+                <strong>${device.name || (isPairable ? 'BRMesh Light' : 'Unknown Device')}</strong>
+                <div class="device-details">
+                    <span>📍 ${device.mac}</span>
+                    <span>📶 ${device.rssi} dBm</span>
+                    <span>🏷️ ${manufacturer}</span>
+                </div>
+            </div>
+            <div class="device-actions">
+                <button class="btn btn-secondary btn-sm" onclick="showDeviceInfo('${device.mac}')" title="Show Details">
+                    ℹ️ Info
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="ignoreDevice('${device.mac}', '${deviceId}')" title="Ignore this device">
+                    ⛔ Ignore
+                </button>
+                ${isPairable ? `
+                <button class="btn btn-success btn-sm" onclick="pairDevice('${device.mac}', ${index})">
+                    🔗 Pair
+                </button>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+async function ignoreDevice(mac, deviceId) {
+    if (!confirm(`Ignore device ${mac}? It will be hidden from future scans.`)) return;
+
     try {
-        const response = await fetch('api/pairing/pair', {
+        const response = await fetch('api/pairing/ignore', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                mac: mac,
-                address: address,
-                group_id: groupId,
-                mesh_key: meshKey
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mac })
         });
         
-        const result = await response.json();
-        
-        if (result.success) {
-            status.className = 'status-message success';
-            status.textContent = `✅ Device ${mac} paired successfully! Pairing response: ${result.pairing_response}`;
-            
-            // Increment address for next device
-            document.getElementById('pairing-address').value = address + 1;
-            
-            // Remove device from discovered list
-            discoveredDevices.splice(deviceIndex, 1);
-            
-            // Refresh lights list
-            await loadLights();
-            
-            showNotification(`✅ Device ${mac} paired as Light ${address}`, 'success');
+        if (response.ok) {
+            const deviceCard = document.getElementById(deviceId);
+            if (deviceCard) {
+                deviceCard.style.opacity = '0.3';
+                deviceCard.style.pointerEvents = 'none';
+                
+                // Add ignored badge
+                const deviceInfo = deviceCard.querySelector('.device-info');
+                const badge = document.createElement('span');
+                badge.className = 'device-badge ignored';
+                badge.textContent = '🚫 Ignored';
+                badge.style.color = '#999';
+                badge.style.marginLeft = '10px';
+                deviceInfo.querySelector('strong').appendChild(badge);
+                
+                showNotification(`Device ${mac} ignored`, 'info');
+            }
         } else {
-            status.className = 'status-message error';
-            status.textContent = `❌ Pairing failed: ${result.error}`;
+            showNotification('Failed to ignore device', 'error');
         }
-        
     } catch (error) {
-        status.className = 'status-message error';
-        status.textContent = '❌ Error pairing device: ' + error.message;
+        console.error('Ignore error:', error);
+        showNotification('Failed to ignore device: ' + error.message, 'error');
     }
 }
 
-function ignoreDevice(mac, deviceId) {
-    const deviceCard = document.getElementById(deviceId);
-    if (deviceCard) {
-        deviceCard.style.opacity = '0.3';
-        deviceCard.style.pointerEvents = 'none';
-        
-        // Add ignored badge
-        const deviceInfo = deviceCard.querySelector('.device-info');
-        const badge = document.createElement('span');
-        badge.className = 'device-badge ignored';
-        badge.textContent = '🚫 Ignored';
-        badge.style.color = '#999';
-        badge.style.marginLeft = '10px';
-        deviceInfo.querySelector('strong').appendChild(badge);
-        
-        // Remove from discovered list
-        discoveredDevices = discoveredDevices.filter(d => d.mac !== mac);
-        
-        console.log(`Ignored device: ${mac}`);
-        showNotification(`Device ${mac} ignored`, 'info');
-    }
+function showDeviceInfo(mac) {
+    const device = discoveredDevices.find(d => d.mac === mac);
+    if (!device) return;
+    
+    const info = `
+        Device Details:
+        ---------------
+        MAC: ${device.mac}
+        Name: ${device.name || 'N/A'}
+        RSSI: ${device.rssi} dBm
+        Manufacturer: ${device.manufacturer}
+        Manufacturer ID: ${device.manufacturer_id ? '0x' + device.manufacturer_id.toString(16) : 'N/A'}
+        Pairing Mode: ${device.pairing_mode ? 'Yes' : 'No'}
+        Raw Data: ${device.raw_data || 'N/A'}
+    `;
+    
+    alert(info);
 }
 
 async function autoPairDevices(devices) {
@@ -2835,7 +2858,7 @@ async function sendTestCommand(commandType) {
     }
     
     try {
-        const response = await fetch('/api/control/send', {
+        const response = await fetch('api/control/send', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

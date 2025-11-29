@@ -5,6 +5,16 @@ All notable changes to the ESP BLE Bridge add-on will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.10] - 2025-11-29
+
+### Added
+- **Enhanced Device Scanner** - Now scans all BLE devices and categorizes them into "Ready to Pair" (BRMesh devices in pairing mode) and "Other Devices".
+- **Ignore Functionality** - Added ability to ignore specific devices from future scans to reduce noise.
+- **Device Info** - Added "Info" button to view detailed technical data (Manufacturer ID, RSSI, Raw Data) for any discovered device.
+
+### Fixed
+- **Ingress Compatibility** - Fixed absolute path issue in API calls that caused errors when accessing via Home Assistant Ingress.
+
 ## [0.50.9] - 2025-11-29
 
 ### Changed
