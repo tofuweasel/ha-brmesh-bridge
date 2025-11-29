@@ -31,6 +31,29 @@ class BRMeshDiscovery:
             "0000fff4",  # BRMesh characteristic
         ]
     
+    def check_esp32_online(self, controller_name: str) -> tuple[bool, str]:
+        """
+        Check if ESP32 is online and responding
+        Returns: (is_online, ip_or_error_message)
+        """
+        import socket
+        hostname = f"{controller_name}.local"
+        
+        try:
+            ip = socket.gethostbyname(hostname)
+            logger.info(f"✅ ESP32 '{controller_name}' is online at {ip}")
+            return True, ip
+        except socket.gaierror:
+            msg = f"❌ Cannot find ESP32 '{controller_name}' on network"
+            logger.error(msg)
+            logger.error(f"   Looked for: {hostname}")
+            logger.error("   Is the ESP32 powered on and connected to WiFi?")
+            return False, msg
+        except Exception as e:
+            msg = f"❌ Error checking ESP32 status: {e}"
+            logger.error(msg)
+            return False, msg
+    
     async def scan_for_devices(self, duration: int = 30) -> List[Dict]:
         """
         Scan for BRMesh devices via ESP32's BLE scanner
@@ -42,13 +65,16 @@ class BRMeshDiscovery:
         - name: Device name if available
         """
         logger.info(f"Requesting ESP32 BLE scan for {duration} seconds via ESPHome logs...")
+        logger.info("⚠️  Note: Make sure your ESP32 is online and configured correctly")
+        logger.info("⚠️  The ESP32 must be flashed with the ESPHome configuration first")
         self.scanning = True
         discovered = []
         
         # Get configured ESPHome controllers
         controllers = self.bridge.config.get('controllers', [])
         if not controllers:
-            logger.error("No ESP32 controllers configured - cannot scan for devices")
+            logger.error("❌ No ESP32 controllers configured - cannot scan for devices")
+            logger.error("   Add a controller in the web UI first!")
             self.scanning = False
             return []
         
@@ -56,26 +82,51 @@ class BRMeshDiscovery:
         controller = controllers[0]
         controller_name = controller.get('name', 'unknown')
         
+        # Check if ESP32 is online
+        is_online, ip_or_error = self.check_esp32_online(controller_name)
+        if not is_online:
+            logger.error("   Make sure you've flashed the ESPHome firmware to your ESP32")
+            self.scanning = False
+            return []
+        
+        ip = ip_or_error
+        
         try:
-            import socket
             import requests
             import re
-            
-            # Resolve controller hostname
-            hostname = f"{controller_name}.local"
-            try:
-                ip = socket.gethostbyname(hostname)
-            except:
-                logger.error(f"Cannot resolve {hostname} - controller offline?")
-                self.scanning = False
-                return []
             
             logger.info(f"Fetching BLE scan data from ESP32 at {ip}...")
             
             # Fetch logs from ESPHome (contains BLE scan results)
-            resp = requests.get(f'http://{ip}/logs', timeout=duration + 5, stream=True)
-            if not resp.ok:
-                logger.error(f"Failed to fetch logs from ESP32: HTTP {resp.status_code}")
+            # Try multiple times with exponential backoff for robustness
+            resp = None
+            for attempt in range(3):
+                try:
+                    resp = requests.get(
+                        f'http://{ip}/logs', 
+                        timeout=min(duration + 5, 30),  # Cap timeout at 30s
+                        stream=True,
+                        headers={'Connection': 'close'}  # Prevent keep-alive issues
+                    )
+                    if resp.ok:
+                        break
+                    logger.warning(f"Attempt {attempt+1}: HTTP {resp.status_code} from ESP32")
+                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                    logger.warning(f"Attempt {attempt+1}: Connection error: {e}")
+                    if attempt < 2:
+                        import time
+                        time.sleep(2 ** attempt)  # 1s, 2s backoff
+                        continue
+                    raise
+            
+            if not resp or not resp.ok:
+                logger.error(f"❌ Failed to fetch logs from ESP32 after 3 attempts")
+                logger.error(f"   Possible causes:")
+                logger.error(f"   1. ESP32 not flashed with ESPHome firmware")
+                logger.error(f"   2. Web server disabled in ESPHome config")
+                logger.error(f"   3. ESP32 is rebooting or unstable")
+                logger.error(f"   4. Network connectivity issues")
+                logger.info(f"💡 Try flashing the ESP32 with: esphome run /config/esphome/{controller_name}.yaml")
                 self.scanning = False
                 return []
             
@@ -136,11 +187,37 @@ class BRMeshDiscovery:
                             logger.debug(f"Device {current_device['mac_address']} is in normal mode (24-byte data)")
             
         except Exception as e:
-            logger.error(f"BLE scan error: {e}", exc_info=True)
+            logger.error(f"❌ BLE scan error: {e}", exc_info=True)
+            logger.error("")
+            logger.error("╔══════════════════════════════════════════════════════════════════════╗")
+            logger.error("║  ESP32 CONNECTION FAILED                                             ║")
+            logger.error("╠══════════════════════════════════════════════════════════════════════╣")
+            logger.error("║  Your ESP32 controller needs to be flashed with ESPHome firmware     ║")
+            logger.error("║  before it can discover lights.                                      ║")
+            logger.error("║                                                                      ║")
+            logger.error("║  QUICK FIX:                                                          ║")
+            logger.error("║  1. Go to Web UI: http://homeassistant.local:8099                   ║")
+            logger.error("║  2. Controllers tab → Build & Flash                                  ║")
+            logger.error("║  3. Connect ESP32 via USB and flash                                  ║")
+            logger.error("║  4. Wait for ESP32 to connect to WiFi                               ║")
+            logger.error("║  5. Try pairing again                                                ║")
+            logger.error("║                                                                      ║")
+            logger.error("║  Config location: /config/esphome/esp-ble-bridge.yaml               ║")
+            logger.error("║  Full setup guide: See ESP32_SETUP_GUIDE.md in addon directory       ║")
+            logger.error("╚══════════════════════════════════════════════════════════════════════╝")
+            logger.error("")
         finally:
             self.scanning = False
         
-        logger.info(f"Scan complete. Found {len(discovered)} BRMesh devices")
+        if len(discovered) == 0:
+            logger.warning("⚠️  No BRMesh devices found during scan")
+            logger.warning("   Make sure your lights are:")
+            logger.warning("   1. Powered on")
+            logger.warning("   2. In pairing mode (factory reset if needed)")
+            logger.warning("   3. Within Bluetooth range of the ESP32")
+        else:
+            logger.info(f"✅ Scan complete. Found {len(discovered)} BRMesh devices")
+        
         return discovered
     
     def _is_brmesh_device(self, device, advertisement_data) -> bool:

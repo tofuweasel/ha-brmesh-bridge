@@ -5,6 +5,14 @@ All notable changes to the ESP BLE Bridge add-on will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.9] - 2025-11-29
+
+### Changed
+- **Prevent Config Overwrite** - The addon no longer automatically overwrites existing ESPHome configuration files on startup.
+- **Manual Config Protection** - Added `# manual_config: true` flag support to prevent any overwrite of specific files.
+- **Explicit Regeneration** - "Regenerate YAML" button in Web UI is now required to apply configuration changes to ESPHome files.
+- **Update Notifications** - Startup logs now indicate if updates are available instead of silently applying them.
+
 ## [0.50.8] - 2025-11-28
 
 ### Added

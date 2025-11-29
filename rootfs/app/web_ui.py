@@ -554,11 +554,29 @@ class WebUI:
                 if not self.bridge.esphome_generator:
                     self.bridge.esphome_generator = ESPHomeConfigGenerator(self.bridge)
                 
-                configs = self.bridge.esphome_generator.generate_all_configs()
+                data = request.json or {}
+                # Default to True for API calls (user initiated action via button)
+                force = data.get('force', True)
+                
+                results = self.bridge.esphome_generator.generate_all_configs(force=force)
+                
+                # Count stats
+                created = sum(1 for r in results.values() if r['status'] == 'created')
+                updated = sum(1 for r in results.values() if r['status'] == 'updated')
+                skipped = sum(1 for r in results.values() if r['status'] == 'skipped')
+                available = sum(1 for r in results.values() if r['status'] == 'update_available')
+                manual = sum(1 for r in results.values() if r['status'] == 'manual_override')
+                
                 return jsonify({
                     'success': True,
-                    'configs': configs,
-                    'count': len(configs)
+                    'results': results,
+                    'stats': {
+                        'created': created,
+                        'updated': updated,
+                        'skipped': skipped,
+                        'update_available': available,
+                        'manual_override': manual
+                    }
                 })
             except Exception as e:
                 return jsonify({'error': str(e)}), 500

@@ -402,9 +402,24 @@ if (!mfg_datas.empty()) {
         
         return yaml_output
     
-    def generate_all_configs(self) -> Dict[str, str]:
-        """Generate configs for all controllers"""
-        configs = {}
+    def generate_all_configs(self, force: bool = False) -> Dict[str, Dict]:
+        """Generate configs for all controllers
+        
+        Args:
+            force: If True, overwrite existing configs even if they exist.
+                   If False, only create new files or report updates available.
+        
+        Returns:
+            Dict mapping controller name to status dict:
+            {
+                'controller_name': {
+                    'status': 'created' | 'updated' | 'skipped' | 'update_available' | 'manual_override',
+                    'path': '/config/esphome/name.yaml',
+                    'content': '...' (only if updated/created)
+                }
+            }
+        """
+        results = {}
         
         # Check if optimized mode is enabled (default: True)
         use_optimized = self.bridge.config.get('use_optimized_fork', True)
@@ -414,20 +429,62 @@ if (!mfg_datas.empty()) {
             
             # Generate config with ALL lights (mesh network!)
             yaml_config = self.generate_controller_config(controller, use_optimized=use_optimized)
-            configs[controller_name] = yaml_config
             
             # Save to file
             filename = f"{controller_name.lower().replace(' ', '-')}.yaml"
             filepath = os.path.join(self.config_dir, filename)
             
+            result = {
+                'path': filepath,
+                'status': 'unknown'
+            }
+            
             try:
-                with open(filepath, 'w') as f:
-                    f.write(yaml_config)
-                logger.info(f"Generated ESPHome config: {filepath}")
+                # Check if file exists
+                if os.path.exists(filepath):
+                    with open(filepath, 'r') as f:
+                        existing_content = f.read()
+                    
+                    # Check for manual override flag
+                    if "# manual_config: true" in existing_content or "# manual_managed: true" in existing_content:
+                        logger.warning(f"⚠️  Skipping generation for {filename} due to manual_config flag")
+                        result['status'] = 'manual_override'
+                        results[controller_name] = result
+                        continue
+                    
+                    # Check if content is identical
+                    if existing_content == yaml_config:
+                        logger.debug(f"Config {filepath} is up to date")
+                        result['status'] = 'skipped'
+                        results[controller_name] = result
+                        continue
+                    
+                    # Content differs
+                    if force:
+                        logger.info(f"♻️  Updating ESPHome config: {filepath}")
+                        with open(filepath, 'w') as f:
+                            f.write(yaml_config)
+                        result['status'] = 'updated'
+                        result['content'] = yaml_config
+                    else:
+                        logger.info(f"ℹ️  Update available for {filepath} (not overwriting without force)")
+                        result['status'] = 'update_available'
+                        # Don't write, just report
+                else:
+                    logger.info(f"✨ Generated new ESPHome config: {filepath}")
+                    with open(filepath, 'w') as f:
+                        f.write(yaml_config)
+                    result['status'] = 'created'
+                    result['content'] = yaml_config
+
             except Exception as e:
                 logger.error(f"Failed to write config {filepath}: {e}")
+                result['status'] = 'error'
+                result['error'] = str(e)
+            
+            results[controller_name] = result
         
-        return configs
+        return results
     
     def generate_secrets_template(self) -> str:
         """Generate secrets.yaml template"""
@@ -595,9 +652,17 @@ if (!mfg_datas.empty()) {
             logger.info("ESPHome config generation disabled")
             return
         
-        logger.info("Generating ESPHome configurations...")
-        configs = self.generate_all_configs()
+        logger.info("Checking ESPHome configurations...")
+        # Default to force=False to prevent overwriting existing configs on startup
+        results = self.generate_all_configs(force=False)
         self.save_secrets_template()
         
-        logger.info(f"Generated {len(configs)} ESPHome controller configs")
-        return configs
+        updated = sum(1 for r in results.values() if r['status'] in ['created', 'updated'])
+        available = sum(1 for r in results.values() if r['status'] == 'update_available')
+        
+        if updated > 0:
+            logger.info(f"Generated {updated} new/updated ESPHome controller configs")
+        if available > 0:
+            logger.info(f"ℹ️  {available} configs have updates available (use Web UI to regenerate)")
+            
+        return results
