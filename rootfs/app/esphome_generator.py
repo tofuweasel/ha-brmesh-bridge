@@ -60,7 +60,7 @@ class ESPHomeConfigGenerator:
             wifi_config['use_address'] = f'{controller_name}.local'
         
         # Bridge firmware version (independent of addon version)
-        BRIDGE_FIRMWARE_VERSION = "1.0.0"
+        BRIDGE_FIRMWARE_VERSION = "1.1.0"
         
         config = {
             'substitutions': {
