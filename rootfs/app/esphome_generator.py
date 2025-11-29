@@ -239,11 +239,14 @@ if (!mfg_datas.empty()) {
                 })
         
         # Generate light configs
+        pairing_buttons = []
         for light_data in lights_to_add:
             light_id = light_data['light_id']
+            light_entity_id = f"brmesh_light_{light_id:02d}"
+            
             light_config = {
                 'platform': 'fastcon',
-                'id': f"brmesh_light_{light_id:02d}",
+                'id': light_entity_id,
                 'name': light_data['name'],
                 'light_id': light_id,
                 'color_interlock': light_data['color_interlock']
@@ -257,6 +260,20 @@ if (!mfg_datas.empty()) {
                 light_config['supports_cwww'] = True
             
             config['light'].append(light_config)
+            
+            # Add pairing button for this light (only in optimized mode)
+            if use_optimized:
+                pairing_buttons.append({
+                    'platform': 'template',
+                    'name': f"Pair Light {light_id}",
+                    'id': f"pair_light_id_{light_id}",
+                    'icon': 'mdi:link-plus',
+                    'on_press': [{
+                        'fastcon.pair_device': {
+                            'light_id': light_id
+                        }
+                    }]
+                })
         
         # Add monitoring sensors
         text_sensors = [
@@ -304,6 +321,9 @@ if (!mfg_datas.empty()) {
                 'icon': 'mdi:security'
             }
         ]
+        
+        if use_optimized:
+            buttons.extend(pairing_buttons)
         
         config['binary_sensor'] = [
             {
